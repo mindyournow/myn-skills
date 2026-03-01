@@ -1,0 +1,31 @@
+{
+  "name": "@mindyournow/skills",
+  "version": "0.1.0",
+  "description": "Universal MYN API skills for AI assistants",
+  "files": [
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "myn",
+    "mind-your-now",
+    "skills",
+    "ai",
+    "claude-code",
+    "panopticon",
+    "openclaw",
+    "cursor",
+    "codex"
+  ],
+  "author": "Mind Your Now <team@mindyournow.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mindyournow/myn-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mindyournow/myn-skills/issues"
+  },
+  "homepage": "https://github.com/mindyournow/myn-skills#readme"
+}
