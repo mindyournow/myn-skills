@@ -1,4 +1,4 @@
-# @mindyournow/skills
+# @mind-your-now/skills
 
 Universal MYN API skills for AI assistants. Teaches any AI agent how to interact with the [Mind Your Now](https://mindyournow.com) productivity platform via its REST API.
 
@@ -43,7 +43,7 @@ pan sync  # if using Panopticon
 Install the OpenClaw plugin which bundles these skills automatically:
 
 ```bash
-openclaw plugins install @mindyournow/openclaw-plugin
+openclaw plugins install @mind-your-now/openclaw-plugin
 ```
 
 ### Cursor / Other AI Editors
@@ -67,7 +67,7 @@ This package contains **pure structured documentation** — no TypeScript, no bu
 
 ## Related
 
-- [`@mindyournow/openclaw-plugin`](https://github.com/mindyournow/openclaw-plugin) — OpenClaw plugin that wraps these skills with tool definitions
+- [`@mind-your-now/openclaw-plugin`](https://github.com/mindyournow/openclaw-plugin) — OpenClaw plugin that wraps these skills with tool definitions
 - [Mind Your Now](https://mindyournow.com) — The productivity platform
 
 ## License
