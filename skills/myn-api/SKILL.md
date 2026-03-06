@@ -69,7 +69,7 @@ See: [references/authentication.md](references/authentication.md)
 
 | Domain | Base Path | Reference Doc | Common Actions |
 |--------|-----------|--------------|----------------|
-| **Tasks** | `/api/v2/unified-tasks` | [tasks-api.md](references/tasks-api.md) | List, create, update, complete, archive, search |
+| **Tasks** | `/api/v2/unified-tasks` | [tasks-api.md](references/tasks-api.md) | List (all, filter client-side), create, update, complete, archive |
 | **Briefing** | `/api/v2/compass` | [briefing-api.md](references/briefing-api.md) | Status, generate, corrections, complete session |
 | **Calendar** | `/api/v2/calendar` | [calendar-api.md](references/calendar-api.md) | List events, create event, delete, meetings |
 | **Habits** | `/api/v1/habit-chains` | [habits-api.md](references/habits-api.md) | Streaks, skip, chains, schedule, reminders |

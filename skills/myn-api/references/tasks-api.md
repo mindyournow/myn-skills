@@ -14,26 +14,43 @@ Unified task management covering Tasks, Habits, and Chores.
 GET /api/v2/unified-tasks
 ```
 
+**Important:** This endpoint returns ALL active tasks for the authenticated user. Filter by priority, date, etc. client-side. This matches the frontend's established pattern — the backend handles complex household deduplication and eager loading that doesn't support server-side filtering.
+
 **Query Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | Filter: `PENDING`, `IN_PROGRESS`, `COMPLETED`, `ARCHIVED` |
-| `priority` | string | Filter: `CRITICAL`, `OPPORTUNITY_NOW`, `OVER_THE_HORIZON`, `PARKING_LOT` |
-| `projectId` | UUID | Filter by project |
-| `startDate` | date | Filter by start date (YYYY-MM-DD) |
-| `endDate` | date | Filter by end date (YYYY-MM-DD) |
-| `limit` | number | Max results (default: 20) |
-| `offset` | number | Pagination offset (default: 0) |
+| `type` | string | Filter by task type: `TASK`, `HABIT`, `CHORE` |
+| `isCompleted` | boolean | Filter by completion state |
+| `householdId` | UUID | Filter by household |
+| `ids` | string | Comma-separated task IDs |
 
 ```bash
-# List Critical Now tasks
+# Fetch all tasks (then filter client-side)
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks?priority=CRITICAL&status=PENDING"
+  "$MYN_API_URL/api/v2/unified-tasks"
 
-# List tasks for a date range
+# Fetch only habits
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks?startDate=2026-03-01&endDate=2026-03-07"
+  "$MYN_API_URL/api/v2/unified-tasks?type=HABIT"
+
+# Fetch specific tasks by ID
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/unified-tasks?ids=550e8400-...,660e8400-..."
+```
+
+### Client-Side Filtering Examples
+
+The response includes `priority`, `startDate`, `isCompleted`, and `isArchived` fields on each task. Filter in your agent/script:
+
+```bash
+# Get Critical Now tasks (priority == "CRITICAL", not completed, not archived)
+curl -s -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/unified-tasks" | \
+  jq '[.[] | select(.priority == "CRITICAL" and .isCompleted == false and .isArchived == false)]'
+
+# Get today's tasks by start date
+curl -s -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/unified-tasks" | \
+  jq --arg today "$(date +%Y-%m-%d)" '[.[] | select(.startDate | startswith($today))]'
 ```
 
 ### Get Task
