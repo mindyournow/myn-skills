@@ -34,11 +34,12 @@ agent and receive information briefings.
      "agentName": "my-openclaw",
      "displayName": "My OpenClaw",
      "outboundEndpoint": "https://my-openclaw.example.com/a2a/message",
-     "capabilityHash": "<sha256 of capabilities manifest>"
+     "capabilityHash": "<sha256 of capabilities manifest>",
+     "capabilityManifest": { ... }
    }
    ```
-3. **Receive keys**: Response contains `mynInboundKey` (use as `X-Agent-Key` header for calls to MYN)
-   and `mynOutboundKey` (MYN uses this to call your agent).
+   Either `capabilityHash` or `capabilityManifest` may be provided; if both, manifest takes precedence.
+3. **Receive keys**: Response contains `mynInboundKey` (use as `X-Agent-Key` header for calls to MYN).
 4. **Start exchanging**: Use `X-Agent-Key: <mynInboundKey>` on all calls to `/a2a/message`.
 
 ## Endpoints
