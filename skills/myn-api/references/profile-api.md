@@ -49,61 +49,37 @@ curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/me"
 GET /api/v1/customers/goals
 ```
 
-**Response:** `{ goals[{ id, title, description?, targetDate?, priority, status, progress, createdAt, updatedAt, relatedTasks?[] }], activeCount, completedCount }`
+**Response:** `{ goalsAndAmbitions: string | null }`
 
-- `priority`: `low`, `medium`, `high`
-- `status`: `active`, `completed`, `paused`, `abandoned`
-- `progress`: 0–100
+Goals are stored as a single markdown text field. The response contains the raw markdown string.
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/goals"
 ```
 
-### Create Goals
+### Update Goals
 
 ```
-POST /api/v1/customers/goals
+PUT /api/v1/customers/goals
 ```
 
 **Body:**
 
 ```json
 {
-  "goals": [
-    {
-      "title": "Run a marathon",
-      "description": "Complete a full marathon by end of year",
-      "targetDate": "2026-12-31",
-      "priority": "high"
-    }
-  ]
+  "goalsAndAmbitions": "- **Run a marathon** [active] (high priority)\n  Complete a full marathon by end of year\n  Target: 2026-12-31\n- **Read 24 books** [active] (medium priority)"
 }
 ```
 
-**Response:** `{ created[{ goalId, title }] }`
+**Response:** `{ status: "success", message: "Goals and ambitions updated successfully" }`
+
+Goals are stored as markdown text. Format each goal as a markdown list item with title, status, priority, description, and target date. The AI assistant formats structured goal objects into this markdown before sending.
 
 ```bash
-curl -X POST "$MYN_API_URL/api/v1/customers/goals" \
+curl -X PUT "$MYN_API_URL/api/v1/customers/goals" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"goals": [{"title": "Read 24 books this year", "priority": "medium"}]}'
-```
-
-### Update Goal
-
-```
-PUT /api/v1/customers/goals/{goalId}
-```
-
-**Body:** `{ title?, description?, targetDate?, priority?, status? }`
-
-**Response:** `{ goalId, updated }`
-
-```bash
-curl -X PUT "$MYN_API_URL/api/v1/customers/goals/aabb0000-0000-0000-0000-000000000001" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"status": "completed"}'
+  -d '{"goalsAndAmbitions": "- **Read 24 books this year** [active] (medium priority)"}'
 ```
 
 ### Get Preferences
