@@ -6,6 +6,21 @@ AI-powered planning, auto-scheduling, and rescheduling.
 
 `/api/schedules`
 
+## Quick Planning Endpoints (MIN-740)
+
+These are direct-action planning endpoints on the `/planning` path. **No state hash required** — they operate on the current state.
+
+> **Note (MIN-740):** These were changed from GET to POST. Use `POST`, not `GET`.
+
+```bash
+# Auto-schedule all eligible tasks for today
+POST /planning/scheduleAll
+
+# Defer overdue tasks into the future based on priority
+POST /planning/kickTheCan
+POST /planning/kickTheCan?rebalance=true   # Spread all uncompleted tasks evenly
+```
+
 ## Endpoints
 
 ### Create Plan
