@@ -78,7 +78,7 @@ curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
   }'
 ```
 
-### Get Latest Debrief
+### Get Current Debrief
 
 ```
 GET /api/v2/debrief/current
@@ -91,15 +91,17 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/debrief/current"
 ```
 
-### Get Specific Debrief
+### Get History
 
 ```
-# No per-ID endpoint — use current for active debrief
+GET /api/v2/debrief/history
 ```
+
+Returns past debriefs for the current user.
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/debrief/debriefs/550e8400-e29b-41d4-a716-446655440000"
+  "$MYN_API_URL/api/v2/debrief/history?limit=10"
 ```
 
 ### Submit Correction
