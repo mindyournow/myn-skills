@@ -81,20 +81,20 @@ curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
 ### Get Latest Debrief
 
 ```
-GET /api/v2/debrief/latest
+GET /api/v2/debrief/current
 ```
 
 Returns the most recent debrief without generating a new one.
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/debrief/latest"
+  "$MYN_API_URL/api/v2/debrief/current"
 ```
 
 ### Get Specific Debrief
 
 ```
-GET /api/v2/debrief/debriefs/{debriefId}
+# No per-ID endpoint — use current for active debrief
 ```
 
 ```bash
@@ -105,7 +105,7 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
 ### Submit Correction
 
 ```
-POST /api/v2/debrief/corrections
+POST /api/v2/debrief/corrections/apply
 ```
 
 Submits a correction to update the active debrief session when reality diverges from the plan.
@@ -128,7 +128,7 @@ Submits a correction to update the active debrief session when reality diverges 
 
 ```bash
 # Mark a task as completed mid-session
-curl -X POST "$MYN_API_URL/api/v2/debrief/corrections" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/corrections/apply" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -138,7 +138,7 @@ curl -X POST "$MYN_API_URL/api/v2/debrief/corrections" \
   }'
 
 # Report a priority change
-curl -X POST "$MYN_API_URL/api/v2/debrief/corrections" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/corrections/apply" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
