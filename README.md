@@ -11,7 +11,7 @@ skills/
     references/
       authentication.md   # API key setup, scopes, rate limits
       tasks-api.md        # Unified tasks: CRUD, complete, archive, search
-      briefing-api.md     # Compass: status, generate, corrections, complete
+      debrief-api.md      # Daily Debrief: status, generate, corrections, complete
       calendar-api.md     # Events: list, create, delete, meetings
       habits-api.md       # Streaks, skip, chains, schedule, reminders
       lists-api.md        # Grocery: get, add, toggle, bulk_add, convert

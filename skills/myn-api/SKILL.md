@@ -1,16 +1,16 @@
 ---
 name: myn-api
 description: "Mind Your Now productivity platform REST API. Use when the user asks about
-  tasks, habits, calendar, briefings, timers, grocery lists, or productivity planning.
-  Provides task management, daily compass briefings, habit tracking, calendar events,
+  tasks, habits, calendar, daily debrief, timers, grocery lists, or productivity planning.
+  Provides task management, daily debrief, habit tracking, calendar events,
   grocery lists, timers, memory, and AI planning via REST API."
 version: "0.1.0"
 triggers:
   - "myn"
   - "mind your now"
   - "task"
-  - "briefing"
-  - "compass"
+  - "debrief"
+  - "daily debrief"
   - "habit"
   - "grocery"
   - "timer"
@@ -70,7 +70,7 @@ See: [references/authentication.md](references/authentication.md)
 | Domain | Base Path | Reference Doc | Common Actions |
 |--------|-----------|--------------|----------------|
 | **Tasks** | `/api/v2/unified-tasks` | [tasks-api.md](references/tasks-api.md) | List (all, filter client-side), create, update, complete, archive |
-| **Briefing** | `/api/v2/compass` | [briefing-api.md](references/briefing-api.md) | Status, generate, corrections, complete session |
+| **Daily Debrief** | `/api/v2/debrief` | [debrief-api.md](references/debrief-api.md) | Status, generate, corrections, complete session |
 | **Calendar** | `/api/v2/calendar` | [calendar-api.md](references/calendar-api.md) | List events, create event, delete, meetings |
 | **Habits** | `/api/v1/habit-chains` | [habits-api.md](references/habits-api.md) | Streaks, skip, chains, schedule, reminders |
 | **Lists** | `/api/v1/households/{id}/grocery-list` | [lists-api.md](references/lists-api.md) | Get, add, toggle, bulk add, convert to tasks |
@@ -118,14 +118,14 @@ curl -X POST "$MYN_API_URL/api/v2/unified-tasks" \
 
 ## Common Workflows
 
-### Morning Routine (Compass Briefing)
+### Morning Routine (Daily Debrief)
 
 ```bash
-# 1. Check briefing status
-curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/compass/status"
+# 1. Check debrief status
+curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/debrief/status"
 
-# 2. Generate morning briefing
-curl -X POST "$MYN_API_URL/api/v2/compass/generate" \
+# 2. Generate morning debrief
+curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"context": "Morning planning session"}'
@@ -133,7 +133,7 @@ curl -X POST "$MYN_API_URL/api/v2/compass/generate" \
 # 3. Review Critical Now, Opportunity Now, habits due, upcoming meetings
 # 4. Apply corrections if needed
 # 5. Complete the session (maintains streak)
-curl -X POST "$MYN_API_URL/api/v2/compass/complete" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"summary": "Focused on 3 critical items, deferred 2 to tomorrow"}'

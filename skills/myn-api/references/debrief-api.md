@@ -1,57 +1,57 @@
-# Briefing API
+# Daily Debrief API
 
-Compass briefing system for AI-generated daily planning sessions with corrections and completion tracking.
+Daily Debrief system for AI-generated daily planning sessions with corrections and completion tracking.
 
 ## Base Path
 
-`/api/v2/compass`
+`/api/v2/debrief`
 
 ## Endpoints
 
 ### Get Session Status
 
 ```
-GET /api/v2/compass/status
+GET /api/v2/debrief/status
 ```
 
-Returns the current briefing session state.
+Returns the current debrief session state.
 
 **Response Fields:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `hasActiveSession` | boolean | Whether a briefing session is currently active |
+| `hasActiveSession` | boolean | Whether a debrief session is currently active |
 | `sessionId` | UUID | Current session ID (null if no active session) |
-| `lastBriefingId` | UUID | ID of the most recent briefing |
-| `lastBriefingTime` | datetime | Timestamp of the most recent briefing |
+| `lastDebriefId` | UUID | ID of the most recent debrief |
+| `lastDebriefTime` | datetime | Timestamp of the most recent debrief |
 | `pendingCorrections` | number | Count of unprocessed corrections |
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/compass/status"
+  "$MYN_API_URL/api/v2/debrief/status"
 ```
 
-### Generate Briefing
+### Generate Debrief
 
 ```
-POST /api/v2/compass/generate
+POST /api/v2/debrief/generate
 ```
 
-Generates a new Compass briefing with prioritized task lists and suggestions.
+Generates a new Daily Debrief with prioritized task lists and suggestions.
 
 **Body Parameters:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `context` | string | Optional context to guide the briefing (e.g., "busy morning, meetings after 2pm") |
+| `context` | string | Optional context to guide the debrief (e.g., "busy morning, meetings after 2pm") |
 | `focusAreas` | string[] | Optional focus areas to emphasize (e.g., `["health", "work deadlines"]`) |
 
 **Response Fields:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `briefingId` | UUID | Unique briefing identifier |
-| `sessionId` | UUID | Session this briefing belongs to |
+| `debriefId` | UUID | Unique debrief identifier |
+| `sessionId` | UUID | Session this debrief belongs to |
 | `summary` | string | Natural language summary of the day |
 | `criticalNow` | object[] | Tasks requiring immediate attention |
 | `opportunityNow` | object[] | Tasks worth doing if time allows |
@@ -59,17 +59,17 @@ Generates a new Compass briefing with prioritized task lists and suggestions.
 | `upcomingMeetings` | object[] | Meetings and calendar events today |
 | `habitsDue` | object[] | Habits scheduled for today |
 | `suggestions` | string[] | AI-generated actionable suggestions |
-| `createdAt` | datetime | Briefing generation timestamp |
+| `createdAt` | datetime | Debrief generation timestamp |
 
 ```bash
-# Generate a basic briefing
-curl -X POST "$MYN_API_URL/api/v2/compass/generate" \
+# Generate a basic debrief
+curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{}'
 
 # Generate with context and focus areas
-curl -X POST "$MYN_API_URL/api/v2/compass/generate" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -78,37 +78,37 @@ curl -X POST "$MYN_API_URL/api/v2/compass/generate" \
   }'
 ```
 
-### Get Latest Briefing
+### Get Latest Debrief
 
 ```
-GET /api/v2/compass/latest
+GET /api/v2/debrief/latest
 ```
 
-Returns the most recent briefing without generating a new one.
+Returns the most recent debrief without generating a new one.
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/compass/latest"
+  "$MYN_API_URL/api/v2/debrief/latest"
 ```
 
-### Get Specific Briefing
+### Get Specific Debrief
 
 ```
-GET /api/v2/compass/briefings/{briefingId}
+GET /api/v2/debrief/debriefs/{debriefId}
 ```
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/compass/briefings/550e8400-e29b-41d4-a716-446655440000"
+  "$MYN_API_URL/api/v2/debrief/debriefs/550e8400-e29b-41d4-a716-446655440000"
 ```
 
 ### Submit Correction
 
 ```
-POST /api/v2/compass/corrections
+POST /api/v2/debrief/corrections
 ```
 
-Submits a correction to update the active briefing session when reality diverges from the plan.
+Submits a correction to update the active debrief session when reality diverges from the plan.
 
 **Body Parameters:**
 
@@ -124,11 +124,11 @@ Submits a correction to update the active briefing session when reality diverges
 |-------|------|-------------|
 | `correctionId` | UUID | Unique correction identifier |
 | `appliedAt` | datetime | When the correction was applied |
-| `briefingUpdated` | boolean | Whether the active briefing was re-ranked |
+| `debriefUpdated` | boolean | Whether the active debrief was re-ranked |
 
 ```bash
 # Mark a task as completed mid-session
-curl -X POST "$MYN_API_URL/api/v2/compass/corrections" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/corrections" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -138,7 +138,7 @@ curl -X POST "$MYN_API_URL/api/v2/compass/corrections" \
   }'
 
 # Report a priority change
-curl -X POST "$MYN_API_URL/api/v2/compass/corrections" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/corrections" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -151,10 +151,10 @@ curl -X POST "$MYN_API_URL/api/v2/compass/corrections" \
 ### Complete Session
 
 ```
-POST /api/v2/compass/complete
+POST /api/v2/debrief/complete
 ```
 
-Ends the active briefing session with an optional summary and decisions record.
+Ends the active debrief session with an optional summary and decisions record.
 
 **Body Parameters:**
 
@@ -169,12 +169,12 @@ Ends the active briefing session with an optional summary and decisions record.
 |-------|------|-------------|
 | `sessionId` | UUID | The completed session ID |
 | `completedAt` | datetime | Session completion timestamp |
-| `nextSessionRecommended` | datetime | Suggested time for next briefing (nullable) |
+| `nextSessionRecommended` | datetime | Suggested time for next debrief (nullable) |
 | `followUps` | object[] | Auto-generated follow-up items |
 
 ```bash
 # Complete the session with a summary
-curl -X POST "$MYN_API_URL/api/v2/compass/complete" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
