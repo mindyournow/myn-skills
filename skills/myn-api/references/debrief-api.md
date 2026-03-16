@@ -104,13 +104,15 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/debrief/history?limit=10"
 ```
 
-### Submit Correction
+### Submit Correction (Apply)
 
 ```
-POST /api/v2/debrief/corrections/apply
+POST /api/v2/compass/corrections/apply
 ```
 
 Submits a correction to update the active debrief session when reality diverges from the plan.
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the current compass state first.
 
 **Body Parameters:**
 
@@ -129,24 +131,20 @@ Submits a correction to update the active debrief session when reality diverges 
 | `debriefUpdated` | boolean | Whether the active debrief was re-ranked |
 
 ```bash
-# Mark a task as completed mid-session
-curl -X POST "$MYN_API_URL/api/v2/debrief/corrections/apply" \
+# 1. Read current compass state to get stateHash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/compass/current"
+# → { "stateHash": "abc123", ... }
+
+# 2. Mark a task as completed mid-session
+curl -X POST "$MYN_API_URL/api/v2/compass/corrections/apply" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "TASK_COMPLETED",
     "data": {"taskId": "550e8400-e29b-41d4-a716-446655440000"},
     "reason": "Finished the report early"
-  }'
-
-# Report a priority change
-curl -X POST "$MYN_API_URL/api/v2/debrief/corrections/apply" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "PRIORITY_CHANGED",
-    "data": {"taskId": "660e8400-e29b-41d4-a716-446655440001", "newPriority": "CRITICAL"},
-    "reason": "Client moved deadline up"
   }'
 ```
 
@@ -157,6 +155,8 @@ POST /api/v2/debrief/complete
 ```
 
 Ends the active debrief session with an optional summary and decisions record.
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the current compass state first.
 
 **Body Parameters:**
 
@@ -175,9 +175,15 @@ Ends the active debrief session with an optional summary and decisions record.
 | `followUps` | object[] | Auto-generated follow-up items |
 
 ```bash
-# Complete the session with a summary
-curl -X POST "$MYN_API_URL/api/v2/debrief/complete" \
+# 1. Read current compass state to get stateHash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/compass/current"
+# → { "stateHash": "abc123", ... }
+
+# 2. Complete the session with a summary
+curl -X POST "$MYN_API_URL/api/v2/compass/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
   -d '{
     "summary": "Productive morning, cleared all Critical Now items",

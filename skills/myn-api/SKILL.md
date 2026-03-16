@@ -160,6 +160,65 @@ When a user has too many Critical Now items:
 3. Update task priorities via `PATCH /api/v2/unified-tasks/{id}`
 4. Help reschedule with `POST /api/schedules/reschedule`
 
+## Read-Before-Write Protocol (Agent Concurrency Guard)
+
+**Required for all agent write operations** (MIN-740). Prevents overwriting concurrent changes.
+
+### How It Works
+
+1. **Read** the resource — GET response includes a `stateHash` field
+2. **Write** with the hash — include `X-MYN-State-Hash: <hash>` header in your write request
+3. **Handle conflicts** — if the resource changed since you read it, you get a 409 with the current state
+
+### HTTP Flow
+
+```bash
+# 1. Read — note the stateHash in the response
+GET /api/v2/unified-tasks/{id}
+# → { "id": "...", "title": "...", "stateHash": "abc123" }
+
+# 2. Write — include the hash as a header
+PATCH /api/v2/unified-tasks/{id}
+X-MYN-State-Hash: abc123
+{ "title": "Updated title" }
+# → 200 { ..., "stateHash": "def456" }  (new hash after update)
+# → 409 { "error": "stale_state", "currentStateHash": "xyz", "message": "..." }  (someone else updated first)
+# → 400 { "error": "missing_state_hash", "message": "..." }  (header missing)
+```
+
+### On 409 Conflict
+
+Re-read the resource from the `currentStateHash` response, merge your changes, and retry.
+
+### Endpoints Requiring State Hash (Agent Requests Only)
+
+| Endpoint | Hash covers |
+|----------|-------------|
+| `PATCH /api/v2/unified-tasks/{id}` | Task mutable fields |
+| `DELETE /api/v2/unified-tasks/{id}` | Task mutable fields |
+| `POST /api/v2/unified-tasks/{id}/complete` | Task mutable fields |
+| `POST /api/v2/unified-tasks/{id}/archive` | Task mutable fields |
+| `PUT /api/v1/customers/goals` | Customer goals/ambitions |
+| `PUT /api/v1/customers/picture-preference` | Customer preferences |
+| `PUT /api/v1/customers/notification-preferences` | Customer preferences |
+| `PUT /api/v1/customers/theme-preference` | Customer preferences |
+| `POST /api/v2/timers/{id}/cancel` | Timer state (id, name, status) |
+| `POST /api/v2/chores/instances/{id}/complete` | Chore instance mutable fields |
+| `POST /api/v2/compass/corrections/apply` | Compass current session state |
+| `POST /api/v2/compass/complete` | Compass current session state |
+| `DELETE /api/v2/calendar/events/{id}` | Calendar event mutable fields |
+
+**JWT (human) requests bypass this check** — only API key agent requests are enforced.
+
+### Planning Endpoints (POST, No Hash Required)
+
+These are write-only operations and don't require a state hash:
+
+```bash
+POST /planning/scheduleAll   # Auto-schedule today's eligible tasks
+POST /planning/kickTheCan    # Defer overdue tasks into the future
+```
+
 ## Key Principles
 
 1. **Urgency, not importance** — Focus on what MUST be done today

@@ -59,9 +59,12 @@ curl -s -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/unified-tasks" | \
 GET /api/v2/unified-tasks/{taskId}
 ```
 
+The response includes a `stateHash` field — **save this** for use in write operations (MIN-740 read-before-write guard).
+
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000"
+# → { "id": "...", "title": "...", "stateHash": "abc123", ... }
 ```
 
 ### Create Task
@@ -131,11 +134,20 @@ curl -X POST "$MYN_API_URL/api/v2/unified-tasks" \
 PATCH /api/v2/unified-tasks/{taskId}
 ```
 
+**Requires `X-MYN-State-Hash` header** (agent requests only — MIN-740 read-before-write guard).
+Read the task first (`GET /api/v2/unified-tasks/{id}`) and use its `stateHash` value.
+
 Send only the fields to update:
 
 ```bash
+# 1. Read to get stateHash
+HASH=$(curl -s -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000" | jq -r .stateHash)
+
+# 2. Write with hash
 curl -X PATCH "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: $HASH" \
   -H "Content-Type: application/json" \
   -d '{"priority": "OPPORTUNITY_NOW", "startDate": "2026-03-05"}'
 ```
@@ -146,9 +158,15 @@ curl -X PATCH "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-4466554
 POST /api/v2/unified-tasks/{taskId}/complete
 ```
 
+**Requires `X-MYN-State-Hash` header** (agent requests only — MIN-740 read-before-write guard).
+
 ```bash
+HASH=$(curl -s -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000" | jq -r .stateHash)
+
 curl -X POST "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: $HASH" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```

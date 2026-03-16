@@ -111,9 +111,18 @@ curl -X POST "$MYN_API_URL/api/v2/calendar/standalone-events" \
 DELETE /api/v2/calendar/events/{eventId}
 ```
 
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the event first to obtain `stateHash`.
+
 ```bash
+# 1. Read event to get stateHash (from the events list)
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/calendar/events?start=2026-03-09T00:00:00&end=2026-03-09T23:59:59"
+# → { "events": [{ "id": "...", "stateHash": "abc123", ... }] }
+
+# 2. Delete with state hash
 curl -X DELETE "$MYN_API_URL/api/v2/calendar/events/550e8400-e29b-41d4-a716-446655440000" \
-  -H "X-API-KEY: $MYN_API_KEY"
+  -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123"
 ```
 
 ### Meeting Metadata
