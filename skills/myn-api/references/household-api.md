@@ -155,8 +155,10 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
 ### Complete Chore
 
 ```
-POST /api/v2/chores/{choreId}/complete
+POST /api/v2/chores/instances/{choreId}/complete
 ```
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the chore instance first to obtain `stateHash`.
 
 **Body:**
 
@@ -168,8 +170,15 @@ POST /api/v2/chores/{choreId}/complete
 **Response:** `{ choreId, completed, completedAt, nextDueDate? }`
 
 ```bash
-curl -X POST "$MYN_API_URL/api/v2/chores/CHORE_ID/complete" \
+# 1. Read chore instance to get stateHash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/chores/instances/CHORE_ID"
+# → { "id": "...", "stateHash": "abc123", ... }
+
+# 2. Complete with state hash
+curl -X POST "$MYN_API_URL/api/v2/chores/instances/CHORE_ID/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
   -d '{"note": "Both bins taken to curb"}'
 ```

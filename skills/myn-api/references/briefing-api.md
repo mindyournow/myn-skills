@@ -102,13 +102,15 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/compass/briefings/550e8400-e29b-41d4-a716-446655440000"
 ```
 
-### Submit Correction
+### Submit Correction (Apply)
 
 ```
-POST /api/v2/compass/corrections
+POST /api/v2/compass/corrections/apply
 ```
 
 Submits a correction to update the active briefing session when reality diverges from the plan.
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the current compass state first.
 
 **Body Parameters:**
 
@@ -127,24 +129,20 @@ Submits a correction to update the active briefing session when reality diverges
 | `briefingUpdated` | boolean | Whether the active briefing was re-ranked |
 
 ```bash
-# Mark a task as completed mid-session
-curl -X POST "$MYN_API_URL/api/v2/compass/corrections" \
+# 1. Read current compass state to get stateHash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/compass/current"
+# → { "stateHash": "abc123", ... }
+
+# 2. Mark a task as completed mid-session
+curl -X POST "$MYN_API_URL/api/v2/compass/corrections/apply" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "TASK_COMPLETED",
     "data": {"taskId": "550e8400-e29b-41d4-a716-446655440000"},
     "reason": "Finished the report early"
-  }'
-
-# Report a priority change
-curl -X POST "$MYN_API_URL/api/v2/compass/corrections" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "PRIORITY_CHANGED",
-    "data": {"taskId": "660e8400-e29b-41d4-a716-446655440001", "newPriority": "CRITICAL"},
-    "reason": "Client moved deadline up"
   }'
 ```
 
@@ -155,6 +153,8 @@ POST /api/v2/compass/complete
 ```
 
 Ends the active briefing session with an optional summary and decisions record.
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the current compass state first.
 
 **Body Parameters:**
 
@@ -173,9 +173,15 @@ Ends the active briefing session with an optional summary and decisions record.
 | `followUps` | object[] | Auto-generated follow-up items |
 
 ```bash
-# Complete the session with a summary
+# 1. Read current compass state to get stateHash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/compass/current"
+# → { "stateHash": "abc123", ... }
+
+# 2. Complete the session with a summary
 curl -X POST "$MYN_API_URL/api/v2/compass/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
   -d '{
     "summary": "Productive morning, cleared all Critical Now items",

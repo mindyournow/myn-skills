@@ -132,3 +132,31 @@ curl -X PUT "$MYN_API_URL/api/v1/customers/preferences" \
   -H "Content-Type: application/json" \
   -d '{"key": "ai.tone", "value": "friendly", "category": "ai"}'
 ```
+
+### Update Picture Preference
+
+```
+PUT /api/v1/customers/picture-preference
+```
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Use the `stateHash` from `GET /api/v1/customers/goals` (covers all customer preferences).
+
+### Update Notification Preferences
+
+```
+PUT /api/v1/customers/notification-preferences
+```
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Use the `stateHash` from `GET /api/v1/customers/goals`.
+
+### Update Theme Preference
+
+```
+PUT /api/v1/customers/theme-preference
+```
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Use the `stateHash` from `GET /api/v1/customers/goals`.
+
+**Body:** `{ "theme": "light" | "dark" | "system" }`
+
+**Note:** All three preference PUT endpoints share the same customer state hash. Read `GET /api/v1/customers/goals` to obtain the `stateHash` before any preference write.

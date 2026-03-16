@@ -132,12 +132,21 @@ curl -X POST "$MYN_API_URL/api/v2/timers" \
 ### Cancel Timer
 
 ```
-DELETE /api/v2/timers/{timerId}
+POST /api/v2/timers/{timerId}/cancel
 ```
 
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the timer first to obtain `stateHash`.
+
 ```bash
-curl -X DELETE "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000" \
-  -H "X-API-KEY: $MYN_API_KEY"
+# 1. Read timer to get stateHash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000"
+# → { "timerId": "...", "stateHash": "abc123", ... }
+
+# 2. Cancel with state hash
+curl -X POST "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000/cancel" \
+  -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123"
 ```
 
 ### Snooze Timer
@@ -147,6 +156,8 @@ POST /api/v2/timers/{timerId}/snooze
 ```
 
 Snoozes a ringing alarm or timer.
+
+**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the timer first to obtain `stateHash`.
 
 **Body Parameters:**
 
@@ -163,9 +174,17 @@ Snoozes a ringing alarm or timer.
 | `status` | string | `"SNOOZED"` |
 
 ```bash
-# Snooze for 10 minutes
+# 1. Read timer to get stateHash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000"
+# → { "timerId": "...", "stateHash": "abc123", ... }
+
+# 2. Snooze for 10 minutes with state hash
 curl -X POST "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000/snooze" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
   -d '{"snoozeMinutes": 10}'
 ```
+
+**Note:** The `GET /api/v2/timers` (list) response includes a `stateHash` per timer object for use in subsequent writes.

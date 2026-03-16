@@ -197,7 +197,16 @@ Re-read the resource from the `currentStateHash` response, merge your changes, a
 | `PATCH /api/v2/unified-tasks/{id}` | Task mutable fields |
 | `DELETE /api/v2/unified-tasks/{id}` | Task mutable fields |
 | `POST /api/v2/unified-tasks/{id}/complete` | Task mutable fields |
+| `POST /api/v2/unified-tasks/{id}/archive` | Task mutable fields |
 | `PUT /api/v1/customers/goals` | Customer goals/ambitions |
+| `PUT /api/v1/customers/picture-preference` | Customer preferences |
+| `PUT /api/v1/customers/notification-preferences` | Customer preferences |
+| `PUT /api/v1/customers/theme-preference` | Customer preferences |
+| `POST /api/v2/timers/{id}/cancel` | Timer state (id, name, status) |
+| `POST /api/v2/chores/instances/{id}/complete` | Chore instance mutable fields |
+| `POST /api/v2/compass/corrections/apply` | Compass current session state |
+| `POST /api/v2/compass/complete` | Compass current session state |
+| `DELETE /api/v2/calendar/events/{id}` | Calendar event mutable fields |
 
 **JWT (human) requests bypass this check** — only API key agent requests are enforced.
 
