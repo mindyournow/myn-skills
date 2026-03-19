@@ -74,7 +74,7 @@ See: [references/authentication.md](references/authentication.md)
 | **Calendar** | `/api/v2/calendar` | [calendar-api.md](references/calendar-api.md) | List events, create event, delete, meetings |
 | **Habits** | `/api/v1/habit-chains` | [habits-api.md](references/habits-api.md) | Streaks, skip, chains, schedule, reminders |
 | **Lists** | `/api/v1/households/{id}/grocery-list` | [lists-api.md](references/lists-api.md) | Get, add, toggle, bulk add, convert to tasks |
-| **Timers** | `/api/v2/timers` | [timers-api.md](references/timers-api.md) | Countdown, alarm, pomodoro, snooze, cancel |
+| **Timers** | `/api/v2/timers` | [timers-api.md](references/timers-api.md) | Countdown, alarm, pomodoro, snooze, cancel. **"reminder" = task, not alarm** |
 | **Search** | `/api/v2/search` | [search-api.md](references/search-api.md) | Unified search across all content types |
 | **Memory** | `/api/v1/customers/memories` | [memory-api.md](references/memory-api.md) | Remember, recall, forget, search |
 | **Profile** | `/api/v1/customers` | [profile-api.md](references/profile-api.md) | User info, goals, preferences |

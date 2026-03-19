@@ -2,6 +2,38 @@
 
 Countdown timers, alarms, and Pomodoro sessions.
 
+## ⚠️ IMPORTANT: "Reminder" vs "Timer" — Default Behavior (MIN-785)
+
+**When a user says "set a reminder", do NOT create a timer/alarm.**
+
+| User says | Agent should create |
+|-----------|---------------------|
+| "set a reminder to…" | **Task** with `reminderEnabled: true` (via `/api/v2/unified-tasks`) |
+| "remind me to…" | **Task** with `reminderEnabled: true` |
+| "set a timer for X minutes" | Countdown timer (`POST /api/v2/timers/countdown`) |
+| "set an alarm for 7am" | Alarm timer (`POST /api/v2/timers/alarm`) |
+| "wake me up at 7am" | Alarm timer (`POST /api/v2/timers/alarm`) |
+
+The word "reminder" maps to a MYN **task**, not an alarm. Tasks integrate with the MYN
+urgency system (Critical Now / Opportunity Now) and persist across sessions. Alarms fire
+once and disappear. Creating an alarm when the user meant a task is jarring — they won't
+find the task on their to-do list.
+
+## Agent Provenance (MIN-785)
+
+When creating timers via API key, include provenance fields so users can see which agent
+created each timer in the UI:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `sourceAgentName` | Human-readable agent identifier | `"OpenClaw/exe.dev"` |
+| `sourceChannel` | Channel where the request originated | `"slack:#finance"` |
+| `sourceModel` | LLM model making the decision | `"openrouter/hunter-alpha"` |
+| `sourceSessionId` | Session ID for traceability | `"sess_abc123"` |
+
+These fields are optional but strongly encouraged. Without them, users cannot tell which
+agent created a timer when they wake up to an unexpected alarm.
+
 ## Base Path
 
 `/api/v2/timers`
