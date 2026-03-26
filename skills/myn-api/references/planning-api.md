@@ -4,203 +4,91 @@ AI-powered planning, auto-scheduling, and rescheduling.
 
 ## Base Path
 
-`/api/schedules`
+`/planning`
 
-## Quick Planning Endpoints (MIN-740)
+## Actions
 
-These are direct-action planning endpoints on the `/planning` path. **No state hash required** — they operate on the current state.
-
-> **Note (MIN-740):** These were changed from GET to POST. Use `POST`, not `GET`.
-
-```bash
-# Auto-schedule all eligible tasks for today
-POST /planning/scheduleAll
-
-# Defer overdue tasks into the future based on priority
-POST /planning/kickTheCan
-POST /planning/kickTheCan?rebalance=true   # Spread all uncompleted tasks evenly
-```
+The `myn_planning` tool supports these actions: `plan`, `schedule_all`, `reschedule`.
 
 ## Endpoints
 
-### Create Plan
+### Plan (Trigger AI Planning)
 
 ```
-POST /api/schedules/plan
+GET /planning/plan
 ```
 
-Generate an AI plan for a goal or set of tasks.
+Triggers the AI planning engine to plan/schedule tasks for the current user. The backend handles this automatically based on the authenticated user's tasks -- no request body is needed.
 
-**Body:**
+**Tool Parameters (accepted but not sent to backend):**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `goal` | string | Yes* | What you want to accomplish |
-| `tasks` | array | Yes* | Tasks to plan (alternative to goal) |
-| `tasks[].title` | string | Yes | Task title |
-| `tasks[].estimatedDuration` | number | No | Duration in minutes |
-| `tasks[].dependsOn` | string[] | No | Task titles this depends on |
-| `tasks[].fixedTime` | datetime | No | Fixed time slot |
-| `constraints` | object | No | Planning constraints |
-| `constraints.availableHours` | number | No | Available hours |
-| `constraints.preferredTimes` | string[] | No | Preferred time slots |
-| `constraints.avoidTimes` | string[] | No | Times to avoid |
-| `constraints.deadline` | datetime | No | Hard deadline |
-| `constraints.priority` | string | No | `CRITICAL`, `OPPORTUNITY_NOW`, `OVER_THE_HORIZON` |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `goal` | string | What you want to accomplish |
+| `constraints` | object | Planning constraints |
+| `constraints.availableHours` | number | Available hours |
+| `constraints.preferredTimes` | string[] | Preferred time slots |
+| `constraints.avoidTimes` | string[] | Times to avoid |
+| `constraints.deadline` | datetime | Hard deadline |
+| `constraints.priority` | string | `CRITICAL`, `OPPORTUNITY_NOW`, `OVER_THE_HORIZON` |
+| `tasks` | array | Tasks to plan |
 
-*At least one of `goal` or `tasks` is required.
-
-**Response:**
-
-```json
-{
-  "planId": "uuid",
-  "goal": "Complete Q1 planning",
-  "estimatedDuration": 240,
-  "schedule": [
-    {
-      "step": 1,
-      "title": "Review last quarter metrics",
-      "description": "Pull Q4 data and analyze trends",
-      "estimatedMinutes": 60,
-      "suggestedTimeSlot": {
-        "start": "2026-03-01T09:00:00Z",
-        "end": "2026-03-01T10:00:00Z"
-      },
-      "dependencies": []
-    }
-  ],
-  "conflicts": [
-    {
-      "taskTitle": "Team standup",
-      "reason": "Overlaps with suggested time slot",
-      "suggestion": "Move to 10:30 AM"
-    }
-  ],
-  "suggestions": ["Consider breaking the budget review into two sessions"],
-  "createdAt": "2026-03-01T08:00:00Z"
-}
-```
+**Response:** String result from the planning engine.
 
 ```bash
-curl -X POST "$MYN_API_URL/api/schedules/plan" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "goal": "Complete Q1 planning",
-    "constraints": {
-      "availableHours": 4,
-      "deadline": "2026-03-05T17:00:00Z",
-      "priority": "CRITICAL"
-    }
-  }'
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/planning/plan"
 ```
 
-### Auto-Schedule Day
+### Schedule All
 
 ```
-POST /api/schedules/auto
+POST /planning/scheduleAll
 ```
 
-Automatically schedule all unscheduled tasks for a day.
+Auto-schedules all eligible tasks (today or past start date, not completed, not OVER_THE_HORIZON/PARKING_LOT) for the authenticated user, then triggers planning. No request body needed.
 
-**Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `date` | date | No | Date to schedule (default: today) |
-| `respectExisting` | boolean | No | Keep existing calendar items (default: true) |
-| `bufferMinutes` | number | No | Buffer between tasks (default: 15) |
-
-**Response:**
-
-```json
-{
-  "date": "2026-03-01",
-  "scheduled": [
-    {
-      "taskId": "uuid",
-      "title": "Prepare report",
-      "scheduledStart": "2026-03-01T09:00:00Z",
-      "scheduledEnd": "2026-03-01T11:00:00Z",
-      "priority": "CRITICAL"
-    }
-  ],
-  "unscheduled": [
-    {
-      "taskId": "uuid",
-      "title": "Research competitors",
-      "reason": "Not enough available time"
-    }
-  ],
-  "conflicts": [
-    {
-      "type": "overlap",
-      "description": "Two critical tasks competing for morning slot",
-      "tasksInvolved": ["uuid1", "uuid2"]
-    }
-  ],
-  "stats": {
-    "totalScheduled": 5,
-    "totalMinutes": 300,
-    "byPriority": { "CRITICAL": 2, "OPPORTUNITY_NOW": 3 }
-  }
-}
-```
+**Note (MIN-740):** Changed from GET to POST.
 
 ```bash
-curl -X POST "$MYN_API_URL/api/schedules/auto" \
+curl -X POST "$MYN_API_URL/planning/scheduleAll" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"date": "2026-03-01", "bufferMinutes": 15}'
+  -d '{}'
 ```
 
-### Reschedule Tasks
+### Reschedule (Kick the Can)
 
 ```
-POST /api/schedules/reschedule
+POST /planning/kickTheCan?rebalance={true|false}
 ```
 
-Move tasks to a different date.
+Reschedules overdue/today tasks into the future based on priority. Optionally redistributes all uncompleted tasks evenly.
 
-**Body:**
+**Note (MIN-740):** Changed from GET to POST.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `taskIds` | UUID[] | Yes | Tasks to reschedule |
-| `reason` | string | No | Why rescheduling |
-| `targetDate` | date | No | New target date |
-| `spreadOverDays` | number | No | Spread across N days (default: 1) |
+**Query Parameters:**
 
-**Response:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `rebalance` | boolean | If `true`, redistribute all uncompleted tasks evenly (default: false) |
 
-```json
-{
-  "rescheduled": [
-    {
-      "taskId": "uuid",
-      "title": "Budget review",
-      "oldDate": "2026-03-01",
-      "newDate": "2026-03-03"
-    }
-  ],
-  "failed": [
-    {
-      "taskId": "uuid",
-      "reason": "Task is already completed"
-    }
-  ],
-  "suggestions": ["Consider spreading over 2 days to avoid overload"]
-}
-```
+**Tool Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `spreadOverDays` | number | If > 1, sets `rebalance=true` (default: 1) |
 
 ```bash
-curl -X POST "$MYN_API_URL/api/schedules/reschedule" \
+# Basic reschedule — defer overdue tasks
+curl -X POST "$MYN_API_URL/planning/kickTheCan?rebalance=false" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "taskIds": ["uuid1", "uuid2"],
-    "targetDate": "2026-03-05",
-    "reason": "Meeting overran, no time today"
-  }'
+  -d '{}'
+
+# Rebalance — spread all uncompleted tasks evenly
+curl -X POST "$MYN_API_URL/planning/kickTheCan?rebalance=true" \
+  -H "X-API-KEY: $MYN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```

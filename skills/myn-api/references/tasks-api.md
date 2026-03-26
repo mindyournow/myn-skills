@@ -6,6 +6,10 @@ Unified task management covering Tasks, Habits, and Chores.
 
 `/api/v2/unified-tasks`
 
+## Actions
+
+The `myn_tasks` tool supports these actions: `list`, `get`, `create`, `update`, `complete`, `archive`, `search`.
+
 ## Endpoints
 
 ### List Tasks
@@ -14,43 +18,24 @@ Unified task management covering Tasks, Habits, and Chores.
 GET /api/v2/unified-tasks
 ```
 
-**Important:** This endpoint returns ALL active tasks for the authenticated user. Filter by priority, date, etc. client-side. This matches the frontend's established pattern — the backend handles complex household deduplication and eager loading that doesn't support server-side filtering.
-
 **Query Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `type` | string | Filter by task type: `TASK`, `HABIT`, `CHORE` |
-| `isCompleted` | boolean | Filter by completion state |
-| `householdId` | UUID | Filter by household |
-| `ids` | string | Comma-separated task IDs |
+| `status` | string | `PENDING`, `IN_PROGRESS`, `COMPLETED`, `ARCHIVED` |
+| `priority` | string | `CRITICAL`, `OPPORTUNITY_NOW`, `OVER_THE_HORIZON`, `PARKING_LOT` |
+| `projectId` | UUID | Filter by project |
+| `startDate` | date | Filter by start date (YYYY-MM-DD) |
+| `endDate` | date | Filter by end date (YYYY-MM-DD) |
+| `limit` | number | Max results (default: 20) |
+| `offset` | number | Pagination offset (default: 0) |
 
 ```bash
-# Fetch all tasks (then filter client-side)
 curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/unified-tasks"
 
-# Fetch only habits
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks?type=HABIT"
-
-# Fetch specific tasks by ID
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks?ids=550e8400-...,660e8400-..."
-```
-
-### Client-Side Filtering Examples
-
-The response includes `priority`, `startDate`, `isCompleted`, and `isArchived` fields on each task. Filter in your agent/script:
-
-```bash
-# Get Critical Now tasks (priority == "CRITICAL", not completed, not archived)
-curl -s -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/unified-tasks" | \
-  jq '[.[] | select(.priority == "CRITICAL" and .isCompleted == false and .isArchived == false)]'
-
-# Get today's tasks by start date
-curl -s -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/unified-tasks" | \
-  jq --arg today "$(date +%Y-%m-%d)" '[.[] | select(.startDate | startswith($today))]'
+  "$MYN_API_URL/api/v2/unified-tasks?priority=CRITICAL&status=PENDING"
 ```
 
 ### Get Task
@@ -59,12 +44,11 @@ curl -s -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v2/unified-tasks" | \
 GET /api/v2/unified-tasks/{taskId}
 ```
 
-The response includes a `stateHash` field — **save this** for use in write operations (MIN-740 read-before-write guard).
+The response includes a `stateHash` field for use in write operations (MIN-740 read-before-write guard).
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000"
-# → { "id": "...", "title": "...", "stateHash": "abc123", ... }
+  "$MYN_API_URL/api/v2/unified-tasks/TASK_ID"
 ```
 
 ### Create Task
@@ -77,8 +61,7 @@ POST /api/v2/unified-tasks
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | UUID | Client-generated UUID |
-| `title` | string | Task title (1–200 chars) |
+| `title` | string | Task title (1-200 chars) |
 | `taskType` | string | `TASK`, `HABIT`, or `CHORE` |
 | `priority` | string | `CRITICAL`, `OPPORTUNITY_NOW`, `OVER_THE_HORIZON`, `PARKING_LOT` |
 | `startDate` | date | Start date (YYYY-MM-DD) |
@@ -87,10 +70,15 @@ POST /api/v2/unified-tasks
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `id` | UUID | Optional (auto-generated if omitted). Do NOT fabricate UUIDs. |
 | `description` | string | Description (max 2000 chars) |
-| `duration` | string | Duration: `"30m"`, `"1h"`, `"1h30m"` (NOT ISO PT prefix) |
+| `duration` | string | Duration: `"30m"`, `"1h"`, `"1h30m"` |
 | `projectId` | UUID | Assign to project |
 | `recurrenceRule` | string | RRULE for HABIT/CHORE types (**required** for HABIT and CHORE) |
+| `isAutoScheduled` | boolean | Enable auto-scheduling (default: true). Only set false if user explicitly opts out. |
+| `calendarId` | string | Calendar ID to link task to (e.g. "primary") |
+| `calendarName` | string | Calendar name to resolve (e.g. "Family", "Work"). Used instead of calendarId. |
+| `scheduleNames` | string[] | Schedule names to assign (e.g. `["Morning"]`, `["Weekday Evening", "Weekend Morning"]`). Resolved to IDs automatically. |
 
 **Type-Specific Rules:**
 
@@ -104,13 +92,14 @@ curl -X POST "$MYN_API_URL/api/v2/unified-tasks" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "550e8400-e29b-41d4-a716-446655440000",
     "title": "Prepare quarterly report",
     "taskType": "TASK",
     "priority": "CRITICAL",
     "startDate": "2026-03-01",
     "duration": "2h",
-    "description": "Q1 financials and projections"
+    "description": "Q1 financials and projections",
+    "isAutoScheduled": true,
+    "scheduleNames": ["Morning"]
   }'
 
 # Create a habit
@@ -118,7 +107,6 @@ curl -X POST "$MYN_API_URL/api/v2/unified-tasks" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "660e8400-e29b-41d4-a716-446655440001",
     "title": "Morning meditation",
     "taskType": "HABIT",
     "priority": "OPPORTUNITY_NOW",
@@ -134,18 +122,15 @@ curl -X POST "$MYN_API_URL/api/v2/unified-tasks" \
 PATCH /api/v2/unified-tasks/{taskId}
 ```
 
-**Requires `X-MYN-State-Hash` header** (agent requests only — MIN-740 read-before-write guard).
-Read the task first (`GET /api/v2/unified-tasks/{id}`) and use its `stateHash` value.
+**Uses read-before-write guard** (MIN-740). Reads task first to get `stateHash`, retries on 409.
 
-Send only the fields to update:
+Send only the fields to update via the `updates` object. Allowed fields: `title`, `description`, `priority`, `status`, `startDate`, `endDate`, `duration`, `projectId`, `recurrenceRule`, `isAutoScheduled`, `calendarId`, `location`, `notes`, `tags`, `estimatedMinutes`, `actualMinutes`, `completedAt`, `archivedAt`, `taskType`, `assignedTo`, `scheduledAt`, `dueDate`.
 
 ```bash
-# 1. Read to get stateHash
 HASH=$(curl -s -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000" | jq -r .stateHash)
+  "$MYN_API_URL/api/v2/unified-tasks/TASK_ID" | jq -r .stateHash)
 
-# 2. Write with hash
-curl -X PATCH "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000" \
+curl -X PATCH "$MYN_API_URL/api/v2/unified-tasks/TASK_ID" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: $HASH" \
   -H "Content-Type: application/json" \
@@ -158,13 +143,13 @@ curl -X PATCH "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-4466554
 POST /api/v2/unified-tasks/{taskId}/complete
 ```
 
-**Requires `X-MYN-State-Hash` header** (agent requests only — MIN-740 read-before-write guard).
+**Uses read-before-write guard** (MIN-740).
 
 ```bash
 HASH=$(curl -s -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000" | jq -r .stateHash)
+  "$MYN_API_URL/api/v2/unified-tasks/TASK_ID" | jq -r .stateHash)
 
-curl -X POST "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000/complete" \
+curl -X POST "$MYN_API_URL/api/v2/unified-tasks/TASK_ID/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: $HASH" \
   -H "Content-Type: application/json" \
@@ -177,8 +162,10 @@ curl -X POST "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-44665544
 POST /api/v2/unified-tasks/{taskId}/archive
 ```
 
+**Uses read-before-write guard** (MIN-740).
+
 ```bash
-curl -X POST "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000/archive" \
+curl -X POST "$MYN_API_URL/api/v2/unified-tasks/TASK_ID/archive" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{}'
@@ -192,31 +179,16 @@ GET /api/v2/search
 
 See [search-api.md](search-api.md) for full search documentation.
 
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `q` | string | Search query |
+| `includeArchived` | boolean | Include archived results (default: false) |
+| `limit` | number | Max results (default: 20) |
+| `offset` | number | Pagination offset (default: 0) |
+
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/search?q=quarterly+report&limit=10"
-```
-
-### Get Habit Streak
-
-```
-GET /api/v2/unified-tasks/{taskId}/streak
-```
-
-```bash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks/660e8400-e29b-41d4-a716-446655440001/streak"
-```
-
-### Move Task to Project
-
-```
-PUT /api/v2/unified-tasks/{taskId}/project
-```
-
-```bash
-curl -X PUT "$MYN_API_URL/api/v2/unified-tasks/550e8400-e29b-41d4-a716-446655440000/project" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"projectId": "770e8400-e29b-41d4-a716-446655440002"}'
 ```

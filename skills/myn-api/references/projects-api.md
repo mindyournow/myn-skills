@@ -6,12 +6,16 @@ Project and category management for organizing tasks.
 
 `/api/project`
 
+## Actions
+
+The `myn_projects` tool supports these actions: `list`, `get`, `create`, `move_task`.
+
 ## Endpoints
 
 ### List Projects
 
 ```
-GET /api/project
+GET /api/project/defaults
 ```
 
 **Query Parameters:**
@@ -45,7 +49,7 @@ GET /api/project
 ```
 
 ```bash
-curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/project?includeStats=true"
+curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/project/defaults?includeStats=true"
 ```
 
 ### Get Project
@@ -87,14 +91,14 @@ curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/project/PROJECT_ID"
 ### Create Project
 
 ```
-POST /api/project
+POST /api/project/create
 ```
 
 **Body:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | Yes | Project name (1–100 chars) |
+| `name` | string | Yes | Project name (1-100 chars) |
 | `description` | string | No | Description (max 500 chars) |
 | `color` | string | No | Hex color (`#3B82F6`) |
 | `icon` | string | No | Icon identifier |
@@ -103,7 +107,7 @@ POST /api/project
 **Response:** `{ id, name, created }`
 
 ```bash
-curl -X POST "$MYN_API_URL/api/project" \
+curl -X POST "$MYN_API_URL/api/project/create" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "Home Renovation", "color": "#10B981", "icon": "home"}'
@@ -112,16 +116,14 @@ curl -X POST "$MYN_API_URL/api/project" \
 ### Move Task to Project
 
 ```
-PUT /api/v2/unified-tasks/{taskId}/project
+PUT /api/project/{targetProjectId}/moveTaskToProject/{taskId}
 ```
 
-**Body:** `{ projectId: "target-project-uuid" }`
+Moves a task to a different project. No request body needed.
 
 **Response:** `{ taskId, previousProjectId?, newProjectId, moved }`
 
 ```bash
-curl -X PUT "$MYN_API_URL/api/v2/unified-tasks/TASK_ID/project" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"projectId": "TARGET_PROJECT_ID"}'
+curl -X PUT "$MYN_API_URL/api/project/TARGET_PROJECT_ID/moveTaskToProject/TASK_ID" \
+  -H "X-API-KEY: $MYN_API_KEY"
 ```

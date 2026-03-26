@@ -6,12 +6,16 @@ User information, goals, and preferences.
 
 `/api/v1/customers`
 
+## Actions
+
+The `myn_profile` tool supports these actions: `get_info`, `get_goals`, `update_goals`, `preferences`.
+
 ## Endpoints
 
 ### Get User Info
 
 ```
-GET /api/v1/customers/me
+GET /api/v1/customers
 ```
 
 **Response:**
@@ -40,7 +44,7 @@ GET /api/v1/customers/me
 ```
 
 ```bash
-curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/me"
+curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers"
 ```
 
 ### Get Goals
@@ -55,7 +59,6 @@ Goals are stored as a single markdown text field. The response includes a `state
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/goals"
-# → { "goalsAndAmbitions": "...", "stateHash": "abc123" }
 ```
 
 ### Update Goals
@@ -64,27 +67,34 @@ curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/goals"
 PUT /api/v1/customers/goals
 ```
 
-**Requires `X-MYN-State-Hash` header** (agent requests only — MIN-740 read-before-write guard).
-Read goals first (`GET /api/v1/customers/goals`) and use its `stateHash` value.
+**Uses read-before-write guard** (MIN-740). Reads goals first to get `stateHash`, retries on 409.
 
-**Body:**
+The tool formats structured goal objects into markdown before sending:
+
+**Tool Parameters (goals array):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | **Required.** Goal title |
+| `description` | string | Goal description |
+| `targetDate` | date | Target date (YYYY-MM-DD) |
+| `priority` | string | `low`, `medium`, `high` |
+| `status` | string | `active`, `completed`, `paused`, `abandoned` |
+
+**Request Body (sent to backend):**
 
 ```json
 {
-  "goalsAndAmbitions": "- **Run a marathon** [active] (high priority)\n  Complete a full marathon by end of year\n  Target: 2026-12-31\n- **Read 24 books** [active] (medium priority)"
+  "goalsAndAmbitions": "- **Run a marathon** [active] (high priority)\n  Complete a full marathon by end of year\n  Target: 2026-12-31"
 }
 ```
 
 **Response:** `{ status: "success", message: "Goals and ambitions updated successfully" }`
 
-Goals are stored as markdown text. Format each goal as a markdown list item with title, status, priority, description, and target date. The AI assistant formats structured goal objects into this markdown before sending.
-
 ```bash
-# 1. Read to get stateHash
 HASH=$(curl -s -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v1/customers/goals" | jq -r .stateHash)
 
-# 2. Write with hash
 curl -X PUT "$MYN_API_URL/api/v1/customers/goals" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: $HASH" \
@@ -92,71 +102,40 @@ curl -X PUT "$MYN_API_URL/api/v1/customers/goals" \
   -d '{"goalsAndAmbitions": "- **Read 24 books this year** [active] (medium priority)"}'
 ```
 
-### Get Preferences
+### Preferences
 
-```
-GET /api/v1/customers/preferences
-GET /api/v1/customers/preferences/{key}
-```
+Preferences are managed via dedicated endpoints, not a generic preferences store.
 
-**Query Parameters:**
+**Valid preference keys:**
+
+| Key | Endpoint |
+|-----|----------|
+| `notification-preferences` | `GET/PUT /api/v1/customers/notification-preferences` |
+| `coaching-intensity` | `GET/PUT /api/v1/customers/coaching-intensity` |
+| `theme-preference` | `GET/PUT /api/v1/customers/theme-preference` |
+
+**Tool Behavior:**
+
+- With `preferenceKey` + `preferenceValue`: PUTs the value to the corresponding endpoint
+- With `preferenceKey` only: GETs from the corresponding endpoint
+- Without `preferenceKey`: GETs all preferences by fetching each endpoint
+
+**Tool Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `category` | string | Filter: `notifications`, `display`, `ai`, `privacy`, `integrations` |
-
-**Response (all):** `{ preferences: { key: value, ... }, categories[] }`
-**Response (specific):** `{ key, value, category, updatedAt }`
+| `preferenceKey` | string | One of: `notification-preferences`, `coaching-intensity`, `theme-preference` |
+| `preferenceValue` | any | Value to set (triggers PUT) |
 
 ```bash
 # Get all preferences
-curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/preferences"
+curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/notification-preferences"
+curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/coaching-intensity"
+curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/theme-preference"
 
-# Get AI preferences only
-curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/preferences?category=ai"
-```
-
-### Set Preference
-
-```
-PUT /api/v1/customers/preferences
-```
-
-**Body:** `{ key, value, category? }`
-
-**Response:** `{ key, updated }`
-
-```bash
-curl -X PUT "$MYN_API_URL/api/v1/customers/preferences" \
+# Update theme
+curl -X PUT "$MYN_API_URL/api/v1/customers/theme-preference" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"key": "ai.tone", "value": "friendly", "category": "ai"}'
+  -d '{"theme": "dark"}'
 ```
-
-### Update Picture Preference
-
-```
-PUT /api/v1/customers/picture-preference
-```
-
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Use the `stateHash` from `GET /api/v1/customers/goals` (covers all customer preferences).
-
-### Update Notification Preferences
-
-```
-PUT /api/v1/customers/notification-preferences
-```
-
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Use the `stateHash` from `GET /api/v1/customers/goals`.
-
-### Update Theme Preference
-
-```
-PUT /api/v1/customers/theme-preference
-```
-
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Use the `stateHash` from `GET /api/v1/customers/goals`.
-
-**Body:** `{ "theme": "light" | "dark" | "system" }`
-
-**Note:** All three preference PUT endpoints share the same customer state hash. Read `GET /api/v1/customers/goals` to obtain the `stateHash` before any preference write.

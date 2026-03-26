@@ -6,6 +6,10 @@ Daily Debrief system for AI-generated daily planning sessions with corrections a
 
 `/api/v2/debrief`
 
+## Actions
+
+The `myn_debrief` tool supports these actions: `status`, `generate`, `get`, `apply_correction`, `complete_session`.
+
 ## Endpoints
 
 ### Get Session Status
@@ -21,9 +25,9 @@ Returns the current debrief session state.
 | Field | Type | Description |
 |-------|------|-------------|
 | `hasActiveSession` | boolean | Whether a debrief session is currently active |
-| `sessionId` | UUID | Current session ID (null if no active session) |
-| `lastDebriefId` | UUID | ID of the most recent debrief |
-| `lastDebriefTime` | datetime | Timestamp of the most recent debrief |
+| `sessionId` | UUID | Current session ID (nullable) |
+| `lastDebriefId` | UUID | ID of the most recent debrief (nullable) |
+| `lastDebriefTime` | datetime | Timestamp of the most recent debrief (nullable) |
 | `pendingCorrections` | number | Count of unprocessed corrections |
 
 ```bash
@@ -43,6 +47,7 @@ Generates a new Daily Debrief with prioritized task lists and suggestions.
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `type` | string | Debrief type: `DAILY`, `EVENING`, `WEEKLY`, `WEEKLY_AND_DAILY`, `ON_DEMAND` (default: `DAILY`) |
 | `context` | string | Optional context to guide the debrief (e.g., "busy morning, meetings after 2pm") |
 | `focusAreas` | string[] | Optional focus areas to emphasize (e.g., `["health", "work deadlines"]`) |
 
@@ -62,20 +67,27 @@ Generates a new Daily Debrief with prioritized task lists and suggestions.
 | `createdAt` | datetime | Debrief generation timestamp |
 
 ```bash
-# Generate a basic debrief
+# Generate a basic daily debrief
 curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{"type": "DAILY"}'
 
 # Generate with context and focus areas
 curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
+    "type": "DAILY",
     "context": "Working from home today, low energy",
     "focusAreas": ["health", "project deadlines"]
   }'
+
+# Evening debrief
+curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
+  -H "X-API-KEY: $MYN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "EVENING"}'
 ```
 
 ### Get Current Debrief
@@ -84,35 +96,22 @@ curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
 GET /api/v2/debrief/current
 ```
 
-Returns the most recent debrief without generating a new one.
+Returns the most recent debrief without generating a new one. Used both for the `get` action (with or without `debriefId`).
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/debrief/current"
 ```
 
-### Get History
+### Submit Correction
 
 ```
-GET /api/v2/debrief/history
-```
-
-Returns past debriefs for the current user.
-
-```bash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/debrief/history?limit=10"
-```
-
-### Submit Correction (Apply)
-
-```
-POST /api/v2/compass/corrections/apply
+POST /api/v2/debrief/corrections/apply
 ```
 
 Submits a correction to update the active debrief session when reality diverges from the plan.
 
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the current compass state first.
+**Uses read-before-write guard** -- reads current debrief state hash before applying.
 
 **Body Parameters:**
 
@@ -131,13 +130,7 @@ Submits a correction to update the active debrief session when reality diverges 
 | `debriefUpdated` | boolean | Whether the active debrief was re-ranked |
 
 ```bash
-# 1. Read current compass state to get stateHash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/compass/current"
-# → { "stateHash": "abc123", ... }
-
-# 2. Mark a task as completed mid-session
-curl -X POST "$MYN_API_URL/api/v2/compass/corrections/apply" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/corrections/apply" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
@@ -156,7 +149,7 @@ POST /api/v2/debrief/complete
 
 Ends the active debrief session with an optional summary and decisions record.
 
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the current compass state first.
+**Uses read-before-write guard** -- reads current debrief state hash before completing.
 
 **Body Parameters:**
 
@@ -175,13 +168,7 @@ Ends the active debrief session with an optional summary and decisions record.
 | `followUps` | object[] | Auto-generated follow-up items |
 
 ```bash
-# 1. Read current compass state to get stateHash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/compass/current"
-# → { "stateHash": "abc123", ... }
-
-# 2. Complete the session with a summary
-curl -X POST "$MYN_API_URL/api/v2/compass/complete" \
+curl -X POST "$MYN_API_URL/api/v2/debrief/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \

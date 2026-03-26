@@ -86,8 +86,7 @@ See: [references/authentication.md](references/authentication.md)
 
 When creating tasks, you MUST provide:
 
-1. **`id`** — Client-generated UUID (e.g., `uuidgen` or `crypto.randomUUID()`)
-2. **`taskType`** — One of: `TASK`, `HABIT`, `CHORE`
+1. **`taskType`** — One of: `TASK`, `HABIT`, `CHORE`
 3. **`priority`** — One of: `CRITICAL`, `OPPORTUNITY_NOW`, `OVER_THE_HORIZON`, `PARKING_LOT`
 4. **`startDate`** — ISO 8601 date (`YYYY-MM-DD`)
 5. **`title`** — Task title (1–200 chars)

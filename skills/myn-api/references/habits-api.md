@@ -2,49 +2,25 @@
 
 Habit streaks, habit chains, scheduling, and reminders.
 
-## Base Path
+## Actions
 
-- Streaks and chains: `/api/v1/habit-chains`
-- Reminders: `/api/habits/reminders`
+The `myn_habits` tool supports these actions: `streaks`, `skip`, `chains`, `schedule`, `reminders`.
 
 ## Endpoints
 
-### List All Habit Streaks
+### Get Habit Streak
 
 ```
-GET /api/v1/habit-chains/streaks
+GET /api/v2/unified-tasks/{habitId}/streak
 ```
 
-Returns streak data for all habits.
-
-**Response Fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `habits` | object[] | Array of habit streak objects |
-| `habits[].habitId` | UUID | Habit identifier |
-| `habits[].title` | string | Habit title |
-| `habits[].currentStreak` | number | Current consecutive completions |
-| `habits[].longestStreak` | number | All-time longest streak |
-| `habits[].totalCompletions` | number | Total times completed |
-| `habits[].lastCompletedAt` | datetime | Last completion timestamp |
-
-```bash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v1/habit-chains/streaks"
-```
-
-### Get Specific Habit Streak
-
-```
-GET /api/v1/habit-chains/{habitId}/streaks
-```
+Returns streak data for a specific habit. Requires `habitId`.
 
 **Query Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `includeHistory` | boolean | Include day-by-day streak history |
+| `includeHistory` | boolean | Include day-by-day streak history (default: false) |
 
 **Response Fields:**
 
@@ -54,7 +30,7 @@ GET /api/v1/habit-chains/{habitId}/streaks
 | `currentStreak` | number | Current consecutive completions |
 | `longestStreak` | number | All-time longest streak |
 | `totalCompletions` | number | Total times completed |
-| `lastCompletedAt` | datetime | Last completion timestamp |
+| `lastCompletedAt` | datetime | Last completion timestamp (nullable) |
 | `streakHistory` | object[] | Day-by-day history (only if `includeHistory=true`) |
 | `streakHistory[].date` | date | Calendar date |
 | `streakHistory[].completed` | boolean | Whether the habit was completed that day |
@@ -62,26 +38,30 @@ GET /api/v1/habit-chains/{habitId}/streaks
 ```bash
 # Basic streak info
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v1/habit-chains/660e8400-e29b-41d4-a716-446655440001/streaks"
+  "$MYN_API_URL/api/v2/unified-tasks/HABIT_ID/streak"
 
 # With full history
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v1/habit-chains/660e8400-e29b-41d4-a716-446655440001/streaks?includeHistory=true"
+  "$MYN_API_URL/api/v2/unified-tasks/HABIT_ID/streak?includeHistory=true"
 ```
+
+**Note:** There is no bulk streaks endpoint. Use the `schedule` action to see all habits.
 
 ### Skip Habit (Preserve Streak)
 
 ```
-POST /api/v1/habit-chains/{habitId}/skip
+POST /api/v2/unified-tasks/{habitId}/skip
 ```
 
 Marks a habit as skipped for a day without breaking the streak.
+
+**Required:** `habitId`
 
 **Body Parameters:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `skipDate` | date | Date to skip (default: today, YYYY-MM-DD) |
+| `skipDate` | date | Date to skip (YYYY-MM-DD, default: today) |
 | `reason` | string | Optional reason for skipping |
 
 **Response Fields:**
@@ -94,7 +74,7 @@ Marks a habit as skipped for a day without breaking the streak.
 | `newStreakCount` | number | Updated streak count |
 
 ```bash
-curl -X POST "$MYN_API_URL/api/v1/habit-chains/660e8400-e29b-41d4-a716-446655440001/skip" \
+curl -X POST "$MYN_API_URL/api/v2/unified-tasks/HABIT_ID/skip" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -106,7 +86,7 @@ curl -X POST "$MYN_API_URL/api/v1/habit-chains/660e8400-e29b-41d4-a716-446655440
 ### List All Chains
 
 ```
-GET /api/v1/habit-chains
+GET /api/habits/chains
 ```
 
 Returns all habit chains (grouped sequences of habits).
@@ -120,17 +100,17 @@ Returns all habit chains (grouped sequences of habits).
 | `chains[].name` | string | Chain name |
 | `chains[].habitCount` | number | Number of habits in the chain |
 | `chains[].totalCompletions` | number | Total completions across all habits |
-| `chains[].lastCompletedAt` | datetime | Last completion in this chain |
+| `chains[].lastCompletedAt` | datetime | Last completion in this chain (nullable) |
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v1/habit-chains"
+  "$MYN_API_URL/api/habits/chains"
 ```
 
 ### Get Specific Chain
 
 ```
-GET /api/v1/habit-chains/{chainId}
+GET /api/habits/chains/{chainId}/status
 ```
 
 **Response Fields:**
@@ -149,13 +129,13 @@ GET /api/v1/habit-chains/{chainId}
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v1/habit-chains/770e8400-e29b-41d4-a716-446655440002"
+  "$MYN_API_URL/api/habits/chains/CHAIN_ID/status"
 ```
 
 ### Get Habit Schedule
 
 ```
-GET /api/v1/habit-chains/schedule
+GET /api/v2/unified-tasks/schedule
 ```
 
 Returns the habit schedule for the upcoming days.
@@ -172,7 +152,7 @@ Returns the habit schedule for the upcoming days.
 |-------|------|-------------|
 | `schedule` | object[] | Array of daily schedules |
 | `schedule[].date` | date | Calendar date |
-| `schedule[].dayOfWeek` | string | Day name (e.g., `Monday`) |
+| `schedule[].dayOfWeek` | number | Day of week number |
 | `schedule[].habits` | object[] | Habits due on that day |
 | `schedule[].habits[].habitId` | UUID | Habit identifier |
 | `schedule[].habits[].title` | string | Habit title |
@@ -184,11 +164,11 @@ Returns the habit schedule for the upcoming days.
 ```bash
 # Default 7-day schedule
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v1/habit-chains/schedule"
+  "$MYN_API_URL/api/v2/unified-tasks/schedule"
 
 # 14-day schedule
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v1/habit-chains/schedule?days=14"
+  "$MYN_API_URL/api/v2/unified-tasks/schedule?days=14"
 ```
 
 ### List All Reminders
@@ -208,7 +188,7 @@ Returns reminder settings for all habits.
 | `reminders[].title` | string | Habit title |
 | `reminders[].enabled` | boolean | Whether the reminder is active |
 | `reminders[].reminderTime` | time | Time of day for the reminder (nullable, HH:mm) |
-| `reminders[].reminderDays` | string[] | Days the reminder fires (e.g., `["MON", "WED", "FRI"]`) |
+| `reminders[].reminderDays` | number[] | Days the reminder fires |
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
@@ -221,9 +201,18 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
 GET /api/habits/reminders/{habitId}
 ```
 
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `habitId` | UUID | Habit identifier |
+| `remindersEnabled` | boolean | Whether reminders are active |
+| `reminderTime` | time | Time of day (nullable, HH:mm) |
+| `reminderDays` | number[] | Days the reminder fires |
+
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/habits/reminders/660e8400-e29b-41d4-a716-446655440001"
+  "$MYN_API_URL/api/habits/reminders/HABIT_ID"
 ```
 
 ### Update Reminder
@@ -240,18 +229,11 @@ PUT /api/habits/reminders/{habitId}
 | `time` | time | Time of day for the reminder (HH:mm) |
 
 ```bash
-# Enable a reminder at 7:30 AM
-curl -X PUT "$MYN_API_URL/api/habits/reminders/660e8400-e29b-41d4-a716-446655440001" \
+curl -X PUT "$MYN_API_URL/api/habits/reminders/HABIT_ID" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "enabled": true,
     "time": "07:30"
   }'
-
-# Disable a reminder
-curl -X PUT "$MYN_API_URL/api/habits/reminders/660e8400-e29b-41d4-a716-446655440001" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"enabled": false}'
 ```

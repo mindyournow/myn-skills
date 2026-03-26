@@ -8,12 +8,13 @@ Household members, invites, and chore management.
 
 ## Getting the Household ID
 
-Most endpoints require a `householdId`. Get it from the user profile:
+Most endpoints require a `householdId`. The plugin auto-resolves it via:
 
-```bash
-curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/v1/customers/me"
-# → { "households": [{ "id": "uuid", "name": "Home" }] }
 ```
+GET /api/v1/households/current
+```
+
+Response: `{ "id": "uuid" }`
 
 ## Endpoints
 
@@ -78,11 +79,19 @@ curl -X POST "$MYN_API_URL/api/v1/households/HOUSEHOLD_ID/invites" \
   -d '{"email": "jane@example.com", "role": "member"}'
 ```
 
-### List Chores
+### List Chores (Today)
 
 ```
-GET /api/v2/chores?householdId={householdId}
+GET /api/v2/chores/today?householdId={householdId}
 ```
+
+Returns today's chores for the household.
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `householdId` | UUID | Required |
 
 **Response:**
 
@@ -106,22 +115,31 @@ GET /api/v2/chores?householdId={householdId}
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/chores?householdId=HOUSEHOLD_ID"
+  "$MYN_API_URL/api/v2/chores/today?householdId=HOUSEHOLD_ID"
 ```
 
 ### Get Chore Schedule
 
 ```
-GET /api/v2/chores/schedule
+GET /api/v2/chores/schedule/range
 ```
+
+Returns chore schedule for a date range.
 
 **Query Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `householdId` | UUID | Required |
-| `date` | date | Specific date (YYYY-MM-DD) |
-| `weekStart` | date | Start of week to view |
+| `startDate` | date | Start date (YYYY-MM-DD, defaults to today) |
+| `endDate` | date | End date (YYYY-MM-DD, defaults to startDate + 7 days) |
+
+**Tool Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `date` | date | Specific date (sets both startDate and endDate) |
+| `weekStart` | date | Start of week (endDate computed as +7 days) |
 
 **Response:**
 
@@ -137,7 +155,9 @@ GET /api/v2/chores/schedule
           "title": "Take out trash",
           "assignedTo": "member-uuid",
           "estimatedMinutes": 10,
-          "completed": false
+          "completed": false,
+          "completedAt": null,
+          "completedBy": null
         }
       ]
     }
@@ -149,7 +169,7 @@ GET /api/v2/chores/schedule
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/chores/schedule?householdId=HOUSEHOLD_ID&date=2026-03-01"
+  "$MYN_API_URL/api/v2/chores/schedule/range?householdId=HOUSEHOLD_ID&startDate=2026-03-01&endDate=2026-03-07"
 ```
 
 ### Complete Chore
@@ -158,7 +178,7 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
 POST /api/v2/chores/instances/{choreId}/complete
 ```
 
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the chore instance first to obtain `stateHash`.
+**Uses read-before-write guard** — reads chore instance state hash before completing.
 
 **Body:**
 
@@ -170,12 +190,6 @@ POST /api/v2/chores/instances/{choreId}/complete
 **Response:** `{ choreId, completed, completedAt, nextDueDate? }`
 
 ```bash
-# 1. Read chore instance to get stateHash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/chores/instances/CHORE_ID"
-# → { "id": "...", "stateHash": "abc123", ... }
-
-# 2. Complete with state hash
 curl -X POST "$MYN_API_URL/api/v2/chores/instances/CHORE_ID/complete" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: abc123" \

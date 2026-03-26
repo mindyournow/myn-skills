@@ -6,6 +6,10 @@ Countdown timers, alarms, and Pomodoro sessions.
 
 `/api/v2/timers`
 
+## Actions
+
+The `myn_timers` tool supports these actions: `create_countdown`, `create_alarm`, `list`, `cancel`, `snooze`, `pomodoro`.
+
 ## Endpoints
 
 ### List Active Timers
@@ -24,7 +28,7 @@ Returns all active timers for the current user.
 | `timers[].timerId` | UUID | Timer identifier |
 | `timers[].type` | string | `COUNTDOWN`, `ALARM`, or `POMODORO` |
 | `timers[].label` | string | User-defined label (nullable) |
-| `timers[].status` | string | Current status (e.g., `RUNNING`, `PAUSED`, `SNOOZED`, `RINGING`, `COMPLETED`) |
+| `timers[].status` | string | Current status |
 | `timers[].duration` | number | Total duration in seconds (COUNTDOWN/POMODORO) |
 | `timers[].remaining` | number | Seconds remaining (COUNTDOWN/POMODORO) |
 | `timers[].endTime` | datetime | When the timer will fire (COUNTDOWN) |
@@ -40,15 +44,13 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/timers"
 ```
 
-### Create Timer
+### Create Countdown Timer
 
 ```
-POST /api/v2/timers
+POST /api/v2/timers/countdown
 ```
 
-Creates a new timer. The request body varies by timer type.
-
-#### Countdown Timer
+**Body Parameters:**
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -56,9 +58,30 @@ Creates a new timer. The request body varies by timer type.
 | `duration` | number | **Required.** Duration in seconds |
 | `label` | string | Optional label |
 
+**Tool Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `duration` | number | Duration in seconds |
+| `durationMinutes` | number | Duration in minutes (converted to seconds automatically) |
+| `label` | string | Timer label/description |
+
+One of `duration` or `durationMinutes` is required.
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `timerId` | UUID | Timer identifier |
+| `type` | string | `"COUNTDOWN"` |
+| `duration` | number | Duration in seconds |
+| `endTime` | datetime | When the timer will fire |
+| `label` | string | Timer label (nullable) |
+| `status` | string | `ACTIVE`, `PAUSED`, or `COMPLETED` |
+
 ```bash
 # 25-minute countdown
-curl -X POST "$MYN_API_URL/api/v2/timers" \
+curl -X POST "$MYN_API_URL/api/v2/timers/countdown" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -68,64 +91,50 @@ curl -X POST "$MYN_API_URL/api/v2/timers" \
   }'
 ```
 
-#### Alarm Timer
+### Create Alarm
+
+```
+POST /api/v2/timers/alarm
+```
+
+**Body Parameters:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `type` | string | **Required.** `"ALARM"` |
+| `name` | string | Alarm name (defaults to "Alarm" from label) |
 | `alarmTime` | datetime | **Required.** When the alarm should fire (ISO 8601) |
-| `label` | string | Optional label |
-| `recurrence` | string | Optional RRULE for repeating alarms |
-| `sound` | string | Optional alarm sound name |
+| `recurrence` | string | Optional recurrence pattern (e.g., "daily", "weekdays") |
+| `completionSound` | string | Optional alarm sound name |
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `timerId` | UUID | Timer identifier |
+| `type` | string | `"ALARM"` |
+| `alarmTime` | datetime | When the alarm will fire |
+| `label` | string | Alarm label (nullable) |
+| `recurrence` | string | Recurrence pattern (nullable) |
+| `status` | string | `ACTIVE`, `TRIGGERED`, or `SNOOZED` |
 
 ```bash
 # One-time alarm
-curl -X POST "$MYN_API_URL/api/v2/timers" \
+curl -X POST "$MYN_API_URL/api/v2/timers/alarm" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "ALARM",
-    "alarmTime": "2026-03-02T07:00:00Z",
-    "label": "Morning wake-up"
+    "name": "Morning wake-up",
+    "alarmTime": "2026-03-02T07:00:00Z"
   }'
 
 # Recurring weekday alarm
-curl -X POST "$MYN_API_URL/api/v2/timers" \
+curl -X POST "$MYN_API_URL/api/v2/timers/alarm" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "ALARM",
+    "name": "Standup reminder",
     "alarmTime": "2026-03-02T08:30:00Z",
-    "label": "Standup reminder",
     "recurrence": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
-  }'
-```
-
-#### Pomodoro Timer
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | string | **Required.** `"POMODORO"` |
-| `workDuration` | number | **Required.** Work phase duration in seconds |
-| `breakDuration` | number | **Required.** Short break duration in seconds |
-| `longBreakDuration` | number | **Required.** Long break duration in seconds (after all sessions) |
-| `sessions` | number | Number of work sessions before long break (default: 4) |
-| `autoStart` | boolean | Auto-start next phase (default: false) |
-| `label` | string | Optional label |
-
-```bash
-# Standard Pomodoro: 25min work, 5min break, 15min long break, 4 sessions
-curl -X POST "$MYN_API_URL/api/v2/timers" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "POMODORO",
-    "workDuration": 1500,
-    "breakDuration": 300,
-    "longBreakDuration": 900,
-    "sessions": 4,
-    "autoStart": true,
-    "label": "Deep work block"
   }'
 ```
 
@@ -135,16 +144,12 @@ curl -X POST "$MYN_API_URL/api/v2/timers" \
 POST /api/v2/timers/{timerId}/cancel
 ```
 
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the timer first to obtain `stateHash`.
+**Uses read-before-write guard** -- reads timer state hash before cancelling.
+
+**Response:** `{ timerId, status }`
 
 ```bash
-# 1. Read timer to get stateHash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000"
-# → { "timerId": "...", "stateHash": "abc123", ... }
-
-# 2. Cancel with state hash
-curl -X POST "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000/cancel" \
+curl -X POST "$MYN_API_URL/api/v2/timers/TIMER_ID/cancel" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: abc123"
 ```
@@ -157,7 +162,7 @@ POST /api/v2/timers/{timerId}/snooze
 
 Snoozes a ringing alarm or timer.
 
-**⚠️ Requires `X-MYN-State-Hash` header (agent requests).** Read the timer first to obtain `stateHash`.
+**Uses read-before-write guard** -- reads timer state hash before snoozing.
 
 **Body Parameters:**
 
@@ -174,17 +179,54 @@ Snoozes a ringing alarm or timer.
 | `status` | string | `"SNOOZED"` |
 
 ```bash
-# 1. Read timer to get stateHash
-curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000"
-# → { "timerId": "...", "stateHash": "abc123", ... }
-
-# 2. Snooze for 10 minutes with state hash
-curl -X POST "$MYN_API_URL/api/v2/timers/550e8400-e29b-41d4-a716-446655440000/snooze" \
+curl -X POST "$MYN_API_URL/api/v2/timers/TIMER_ID/snooze" \
   -H "X-API-KEY: $MYN_API_KEY" \
   -H "X-MYN-State-Hash: abc123" \
   -H "Content-Type: application/json" \
   -d '{"snoozeMinutes": 10}'
 ```
 
-**Note:** The `GET /api/v2/timers` (list) response includes a `stateHash` per timer object for use in subsequent writes.
+### Create Pomodoro Timer
+
+```
+POST /api/v2/timers/countdown
+```
+
+Creates a Pomodoro timer (uses the countdown endpoint with `type: "POMODORO"`).
+
+**Body Parameters:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | **Required.** `"POMODORO"` |
+| `workDuration` | number | Work phase in seconds (tool accepts minutes, auto-converts) |
+| `breakDuration` | number | Short break in seconds (tool accepts minutes, auto-converts) |
+| `longBreakDuration` | number | Long break in seconds (tool accepts minutes, auto-converts) |
+| `sessions` | number | Number of work sessions (default: 4) |
+| `autoStart` | boolean | Auto-start next phase (default: false) |
+| `label` | string | Optional label |
+
+**Tool Parameters (in minutes):**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `workDuration` | number | 25 | Work duration in minutes |
+| `breakDuration` | number | 5 | Break duration in minutes |
+| `longBreakDuration` | number | 15 | Long break duration in minutes |
+| `sessions` | number | 4 | Number of pomodoro sessions |
+| `autoStart` | boolean | false | Auto-start next phase |
+
+```bash
+curl -X POST "$MYN_API_URL/api/v2/timers/countdown" \
+  -H "X-API-KEY: $MYN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "POMODORO",
+    "workDuration": 1500,
+    "breakDuration": 300,
+    "longBreakDuration": 900,
+    "sessions": 4,
+    "autoStart": true,
+    "label": "Deep work block"
+  }'
+```
