@@ -15,27 +15,61 @@ The `myn_tasks` tool supports these actions: `list`, `get`, `create`, `update`, 
 ### List Tasks
 
 ```
-GET /api/v2/unified-tasks
+GET /api/v2/unified-tasks?limit={limit}
 ```
+
+`limit` is required. Omitting it returns HTTP 400. Values are clamped to 1–200.
+The default `detail=compact` response uses an allowlisted summary DTO; pass
+`detail=full` when the caller needs the existing full task shape.
 
 **Query Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | `PENDING`, `IN_PROGRESS`, `COMPLETED`, `ARCHIVED` |
-| `priority` | string | `CRITICAL`, `OPPORTUNITY_NOW`, `OVER_THE_HORIZON`, `PARKING_LOT` |
-| `projectId` | UUID | Filter by project |
-| `startDate` | date | Filter by start date (YYYY-MM-DD) |
-| `endDate` | date | Filter by end date (YYYY-MM-DD) |
-| `limit` | number | Max results (default: 20) |
-| `offset` | number | Pagination offset (default: 0) |
+| `limit` | number | **Required.** Maximum tasks to return, clamped to 1–200 |
+| `offset` | number | Number of tasks to skip (default: 0) |
+| `detail` | string | `compact` (default) or `full` |
+| `status` | string | `PENDING`, `ACTIVE`, or `COMPLETED` (case-insensitive) |
+| `type` | string | `TASK`, `HABIT`, `CHORE`, or `RecurringTask` |
+| `date` | date | Filter by date (YYYY-MM-DD) |
+| `includeHousehold` | boolean | Include household-shared tasks (default: false) |
+| `isCompleted` | boolean | Filter by completion state |
+| `householdId` | string | Filter by household ID |
+| `ids` | string | Comma-separated task IDs |
+
+**Response envelope:**
+
+```json
+{
+  "tasks": [
+    {
+      "id": "uuid",
+      "title": "Prepare quarterly report",
+      "taskType": "TASK",
+      "isCompleted": false,
+      "completedToday": false,
+      "priority": "CRITICAL",
+      "requiredDate": "2026-08-05T00:00:00Z",
+      "scheduledDate": "2026-08-01T00:00:00Z",
+      "householdId": null,
+      "projectId": "uuid",
+      "streak": null,
+      "currentAssigneeId": null
+    }
+  ],
+  "total": 1,
+  "limit": 20,
+  "offset": 0,
+  "hasMore": false
+}
+```
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks"
+  "$MYN_API_URL/api/v2/unified-tasks?limit=20"
 
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/v2/unified-tasks?priority=CRITICAL&status=PENDING"
+  "$MYN_API_URL/api/v2/unified-tasks?limit=20&status=PENDING&detail=full"
 ```
 
 ### Get Task

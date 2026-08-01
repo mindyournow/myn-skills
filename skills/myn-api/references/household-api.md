@@ -6,6 +6,10 @@ Household members, invites, and chore management.
 
 `/api/v1/households` and `/api/v2/chores`
 
+Household discovery, member reads, today's chores, and chore schedule reads support
+both bearer JWTs and API keys with `AGENT_FULL` scope. API-key callers receive the
+same household membership and authorization checks as signed-in users.
+
 ## Getting the Household ID
 
 Most endpoints require a `householdId`. The plugin auto-resolves it via:

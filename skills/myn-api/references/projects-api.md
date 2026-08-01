@@ -15,41 +15,42 @@ The `myn_projects` tool supports these actions: `list`, `get`, `create`, `move_t
 ### List Projects
 
 ```
-GET /api/project/defaults
+GET /api/project/defaults?limit={limit}
 ```
+
+`limit` is required. Omitting it returns HTTP 400. The endpoint returns compact,
+allowlisted project summaries rather than project entities and their task graphs.
 
 **Query Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `includeArchived` | boolean | Include archived projects (default: false) |
-| `includeStats` | boolean | Include task statistics (default: true) |
+| `limit` | number | **Required.** Maximum projects to return, clamped to 1–200 |
+| `offset` | number | Number of projects to skip (default: 0) |
 
-**Response:**
+**Response envelope:**
 
 ```json
 {
   "projects": [
     {
       "id": "uuid",
-      "name": "Q1 Planning",
-      "description": "First quarter objectives",
-      "color": "#3B82F6",
-      "icon": "target",
-      "parentId": null,
-      "createdAt": "2026-01-01T00:00:00Z",
-      "stats": {
-        "totalTasks": 12,
-        "completedTasks": 8,
-        "criticalTasks": 2
-      }
+      "type": "ALL",
+      "customName": "All tasks",
+      "customEmoji": "📁",
+      "hideTasksInMainList": false
     }
-  ]
+  ],
+  "total": 1,
+  "limit": 50,
+  "offset": 0,
+  "hasMore": false
 }
 ```
 
 ```bash
-curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/project/defaults?includeStats=true"
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/project/defaults?limit=50"
 ```
 
 ### Get Project
