@@ -96,7 +96,7 @@ curl -X POST "$MYN_API_URL/api/v2/debrief/generate" \
 GET /api/v2/debrief/current
 ```
 
-Returns the most recent debrief without generating a new one. Used both for the `get` action (with or without `debriefId`).
+Returns the most recent debrief without generating a new one. Used both for the `get` action (with or without `debriefId`). When no READY summary exists, this is a normal empty state: the endpoint returns HTTP 200 with `{"current": null}`. When a summary exists, the response remains the bare debrief summary object.
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
