@@ -171,69 +171,69 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v2/unified-tasks/schedule?days=14"
 ```
 
-### List All Reminders
+### List Habit Reminders
+
+Reminder settings live on each habit's unified task entity. List habits through the unified-tasks endpoint, then filter the returned tasks client-side to `taskType == "HABIT"` and `reminderEnabled == true`.
 
 ```
-GET /api/habits/reminders
+GET /api/v2/unified-tasks?type=HABIT
 ```
 
-Returns reminder settings for all habits.
-
-**Response Fields:**
+**Reminder Fields on Each Task:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `reminders` | object[] | Array of reminder objects |
-| `reminders[].habitId` | UUID | Habit identifier |
-| `reminders[].title` | string | Habit title |
-| `reminders[].enabled` | boolean | Whether the reminder is active |
-| `reminders[].reminderTime` | time | Time of day for the reminder (nullable, HH:mm) |
-| `reminders[].reminderDays` | number[] | Days the reminder fires |
+| `id` | UUID | Habit identifier |
+| `title` | string | Habit title |
+| `reminderEnabled` | boolean | Whether the reminder is active |
+| `reminderTime` | time | Time of day for the reminder (nullable, HH:mm) |
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/habits/reminders"
+  "$MYN_API_URL/api/v2/unified-tasks?type=HABIT"
 ```
 
-### Get Specific Reminder
+### Get Specific Reminder Settings
+
+Read the habit's unified task and use its `reminderEnabled` and `reminderTime` fields.
 
 ```
-GET /api/habits/reminders/{habitId}
+GET /api/v2/unified-tasks/{habitId}
 ```
-
-**Response Fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `habitId` | UUID | Habit identifier |
-| `remindersEnabled` | boolean | Whether reminders are active |
-| `reminderTime` | time | Time of day (nullable, HH:mm) |
-| `reminderDays` | number[] | Days the reminder fires |
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
-  "$MYN_API_URL/api/habits/reminders/HABIT_ID"
+  "$MYN_API_URL/api/v2/unified-tasks/HABIT_ID"
 ```
 
-### Update Reminder
+### Update Reminder Settings
+
+Reminder writes use the unified-task read-before-write protocol. First read the task and capture its `stateHash`, then send that hash in `X-MYN-State-Hash` on the PATCH. If the PATCH returns `409 Conflict` with `currentStateHash`, retry once with the returned hash.
 
 ```
-PUT /api/habits/reminders/{habitId}
+PATCH /api/v2/unified-tasks/{habitId}
 ```
 
 **Body Parameters:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `enabled` | boolean | Enable or disable the reminder |
-| `time` | time | Time of day for the reminder (HH:mm) |
+| `reminderEnabled` | boolean | Enable or disable the reminder |
+| `reminderTime` | time | Time of day for the reminder (HH:mm) |
 
 ```bash
-curl -X PUT "$MYN_API_URL/api/habits/reminders/HABIT_ID" \
+# 1. Read the task and capture its stateHash.
+TASK=$(curl -sS -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v2/unified-tasks/HABIT_ID")
+STATE_HASH=$(printf '%s' "$TASK" | jq -r '.stateHash')
+
+# 2. Patch the reminder fields using that hash.
+curl -X PATCH "$MYN_API_URL/api/v2/unified-tasks/HABIT_ID" \
   -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: $STATE_HASH" \
   -H "Content-Type: application/json" \
   -d '{
-    "enabled": true,
-    "time": "07:30"
+    "reminderEnabled": true,
+    "reminderTime": "07:30"
   }'
 ```
