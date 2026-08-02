@@ -20,7 +20,11 @@ GET /api/v2/unified-tasks?limit={limit}
 
 `limit` is required. Omitting it returns HTTP 400. Values are clamped to 1–200.
 The default `detail=compact` response uses an allowlisted summary DTO; pass
-`detail=full` when the caller needs the existing full task shape.
+`detail=full` when the caller needs the existing full task shape. Successful
+responses include a representation-specific `ETag`; send it in `If-None-Match`
+with the same filters, detail, limit, and offset to receive HTTP 304 when that
+exact page is unchanged. `If-Modified-Since` is legacy-only and does not control
+304 responses for this collection.
 
 **Query Parameters:**
 
