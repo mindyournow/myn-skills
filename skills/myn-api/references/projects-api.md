@@ -1,6 +1,13 @@
 # Projects API
 
-Project and category management for organizing tasks.
+MYN calls its task collections "projects" in the API.
+
+## Collections, not projects
+
+MYN has twelve fixed, server-managed collections such as `PERSONAL`, `WORK`,
+`GROCERIES`, `BOOKS`, and `CHORES`. They cannot be created, renamed, or deleted.
+Use `move_task` to change which collection a task belongs to. Real user-named
+projects are planned as a separate future feature.
 
 ## Base Path
 
@@ -8,25 +15,26 @@ Project and category management for organizing tasks.
 
 ## Actions
 
-The `myn_projects` tool supports these actions: `list`, `get`, `create`, `move_task`.
+The `myn_projects` tool supports these actions: `list`, `get`, `move_task`.
 
 ## Endpoints
 
-### List Projects
+### List Collections
 
 ```
 GET /api/project/defaults?limit={limit}
 ```
 
 `limit` is required. Omitting it returns HTTP 400. The endpoint returns compact,
-allowlisted project summaries rather than project entities and their task graphs.
+allowlisted collection summaries rather than project entities and their nested
+owner, account, calendar, or task graphs.
 
-**Query Parameters:**
+**Query parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `limit` | number | **Required.** Maximum projects to return, clamped to 1–200 |
-| `offset` | number | Number of projects to skip (default: 0) |
+| `limit` | number | **Required.** Maximum collections to return, clamped to 1–200 |
+| `offset` | number | Number of collections to skip (default: 0) |
 
 **Response envelope:**
 
@@ -35,13 +43,14 @@ allowlisted project summaries rather than project entities and their task graphs
   "projects": [
     {
       "id": "uuid",
-      "type": "ALL",
-      "customName": "All tasks",
-      "customEmoji": "📁",
-      "hideTasksInMainList": false
+      "type": "PERSONAL",
+      "customName": null,
+      "customEmoji": null,
+      "displayName": "Personal",
+      "taskCount": 7
     }
   ],
-  "total": 1,
+  "total": 12,
   "limit": 50,
   "offset": 0,
   "hasMore": false
@@ -53,78 +62,45 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/project/defaults?limit=50"
 ```
 
-### Get Project
+### Get Collection
 
 ```
 GET /api/project/{projectId}
 ```
 
-**Response:**
-
-```json
-{
-  "id": "uuid",
-  "name": "Q1 Planning",
-  "description": "First quarter objectives",
-  "color": "#3B82F6",
-  "icon": "target",
-  "parentId": null,
-  "createdAt": "2026-01-01T00:00:00Z",
-  "tasks": [
-    {
-      "id": "uuid",
-      "title": "Prepare budget",
-      "priority": "CRITICAL",
-      "status": "PENDING",
-      "startDate": "2026-03-01"
-    }
-  ],
-  "subProjects": [
-    { "id": "uuid", "name": "Budget", "taskCount": 3 }
-  ]
-}
-```
+The stored collection fields are `id`, `type`, `customName`, and `customEmoji`.
+`customName` and `customEmoji` apply only to legacy `OTHER` rows; fixed collections
+use their enum type as their identity.
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" "$MYN_API_URL/api/project/PROJECT_ID"
 ```
 
-### Create Project
+### Create Collection — deprecated
 
 ```
 POST /api/project/create
 ```
 
-**Body:**
+This endpoint is deprecated. Collection creation is not supported, and real
+user-named projects are planned separately. A missing or null `type` returns
+HTTP 400 with the valid enum values, an unknown type returns HTTP 400, and an
+incomplete legacy `OTHER` body returns HTTP 400 naming `customName` and
+`customEmoji`. The `myn_projects` tool does not expose this endpoint.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Project name (1-100 chars) |
-| `description` | string | No | Description (max 500 chars) |
-| `color` | string | No | Hex color (`#3B82F6`) |
-| `icon` | string | No | Icon identifier |
-| `parentId` | UUID | No | Parent project for nesting |
-
-**Response:** `{ id, name, created }`
-
-```bash
-curl -X POST "$MYN_API_URL/api/project/create" \
-  -H "X-API-KEY: $MYN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Home Renovation", "color": "#10B981", "icon": "home"}'
-```
-
-### Move Task to Project
+### Move Task to Collection
 
 ```
 PUT /api/project/{targetProjectId}/moveTaskToProject/{taskId}
 ```
 
-Moves a task to a different project. No request body needed.
-
-**Response:** `{ taskId, previousProjectId?, newProjectId, moved }`
+Moves a task into an existing collection and returns the updated task. Agent API
+keys must read the task first and send its `stateHash` as `X-MYN-State-Hash`; the
+`myn_projects` `move_task` action performs this guarded read-before-write flow
+automatically.
 
 ```bash
 curl -X PUT "$MYN_API_URL/api/project/TARGET_PROJECT_ID/moveTaskToProject/TASK_ID" \
-  -H "X-API-KEY: $MYN_API_KEY"
+  -H "X-API-KEY: $MYN_API_KEY" \
+  -H "X-MYN-State-Hash: TASK_STATE_HASH"
 ```
