@@ -23,8 +23,10 @@ The default `detail=compact` response uses an allowlisted summary DTO; pass
 `detail=full` when the caller needs the existing full task shape. Successful
 responses include a representation-specific `ETag`; send it in `If-None-Match`
 with the same filters, detail, limit, and offset to receive HTTP 304 when that
-exact page is unchanged. `If-Modified-Since` is legacy-only and does not control
-304 responses for this collection.
+exact page is unchanged. Page one also returns a stable `snapshot` token. Send
+it as the `snapshot` query parameter on every later page; HTTP 409 means the
+collection changed and pagination must restart from offset 0. `If-Modified-Since`
+is legacy-only and does not control 304 responses for this collection.
 
 **Query Parameters:**
 
@@ -32,6 +34,7 @@ exact page is unchanged. `If-Modified-Since` is legacy-only and does not control
 |-----------|------|-------------|
 | `limit` | number | **Required.** Maximum tasks to return, clamped to 1–200 |
 | `offset` | number | Number of tasks to skip (default: 0) |
+| `snapshot` | string | Page-one snapshot token required on subsequent pages |
 | `detail` | string | `compact` (default) or `full` |
 | `status` | string | `PENDING`, `ACTIVE`, or `COMPLETED` (case-insensitive) |
 | `type` | string | `TASK`, `HABIT`, `CHORE`, or `RecurringTask` |
@@ -64,7 +67,8 @@ exact page is unchanged. `If-Modified-Since` is legacy-only and does not control
   "total": 1,
   "limit": 20,
   "offset": 0,
-  "hasMore": false
+  "hasMore": false,
+  "snapshot": "6f11e127-4c98-3f86-b820-6d22630c406d"
 }
 ```
 
