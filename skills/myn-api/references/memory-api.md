@@ -48,33 +48,62 @@ curl -X POST "$MYN_API_URL/api/v1/agent/memories" \
 GET /api/v1/customers/memories?limit=50
 ```
 
-Returns all memories (up to 50). Optionally filter client-side by `memoryId`.
+Returns a bounded page of memories. `limit` is required; omitting it returns
+HTTP 400. Values are clamped to 1–200.
 
 **Query Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `limit` | number | Max results (default: 50) |
+| `limit` | number | **Required.** Maximum memories to return, clamped to 1–200 |
+| `offset` | number | Number of memories to skip (default: 0) |
 
-**Response:** Array of memory objects:
+**Response envelope:**
 
 ```json
-[
-  {
-    "memoryId": "uuid",
-    "content": "User prefers morning meetings",
-    "category": "PREFERENCE",
-    "tags": [],
-    "importance": "medium",
-    "createdAt": "2026-03-01T00:00:00Z",
-    "accessedAt": "2026-03-09T10:00:00Z"
-  }
-]
+{
+  "memories": [
+    {
+      "id": "uuid",
+      "type": "PREFERENCE",
+      "content": "User prefers morning meetings",
+      "confidence": 0.9,
+      "sourceConversationId": "conversation-id",
+      "sourceGoalId": null,
+      "createdAt": "2026-03-01T00:00:00",
+      "lastReinforcedAt": "2026-03-05T00:00:00",
+      "reinforcementCount": 2,
+      "lastUsedAt": "2026-03-09T10:00:00",
+      "usageCount": 3,
+      "topics": ["meetings"],
+      "hasEmbedding": true
+    }
+  ],
+  "totalCount": 1,
+  "limit": 50,
+  "offset": 0,
+  "hasMore": false
+}
 ```
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v1/customers/memories?limit=50"
+```
+
+### Recall One Memory by ID
+
+```
+GET /api/v1/customers/memories/{memoryId}
+```
+
+Returns one memory owned by the authenticated customer without scanning the
+paginated collection. A missing ID or an ID owned by another customer returns
+HTTP 404.
+
+```bash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v1/customers/memories/MEMORY_ID"
 ```
 
 ### Forget (Delete Memory)

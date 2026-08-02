@@ -95,15 +95,24 @@ Fetches events from all connected calendars within a date range. Descriptions ar
 GET /api/v2/calendar/events/{eventId}
 ```
 
-Returns full details for a single event including description and attendees. Results are cached in-memory (10-minute TTL) with hash-based change detection.
+Returns full details for a single event including description and attendees. `eventId`
+may be either MYN's internal numeric event ID or the external provider event ID (for
+example, a Google event ID). The API tries the numeric ID first and then falls back
+to the external ID. Results are cached in-memory (10-minute TTL) with hash-based
+change detection.
 
 **Required Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `eventId` | string | Calendar event ID |
+| `eventId` | string | Internal numeric ID or external provider event ID |
 
-**Response:** Full event object plus `_cached` (boolean, whether unchanged since last fetch) and `_hash` (content hash).
+**Responses:**
+
+- `200`: Full event object plus `_cached` (whether unchanged since the last fetch)
+  and `_hash` (content hash).
+- `400`: The event ID is blank or missing.
+- `404`: Neither the internal ID nor the external provider ID matches an event.
 
 ```bash
 curl -H "X-API-KEY: $MYN_API_KEY" \
