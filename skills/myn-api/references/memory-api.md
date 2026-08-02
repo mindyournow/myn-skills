@@ -91,6 +91,21 @@ curl -H "X-API-KEY: $MYN_API_KEY" \
   "$MYN_API_URL/api/v1/customers/memories?limit=50"
 ```
 
+### Recall One Memory by ID
+
+```
+GET /api/v1/customers/memories/{memoryId}
+```
+
+Returns one memory owned by the authenticated customer without scanning the
+paginated collection. A missing ID or an ID owned by another customer returns
+HTTP 404.
+
+```bash
+curl -H "X-API-KEY: $MYN_API_KEY" \
+  "$MYN_API_URL/api/v1/customers/memories/MEMORY_ID"
+```
+
 ### Forget (Delete Memory)
 
 ```
