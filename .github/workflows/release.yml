@@ -1,0 +1,54 @@
+name: release
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check skill front matter
+        run: |
+          for f in skills/*/SKILL.md; do
+            head -1 "$f" | grep -qx -- '---' || { echo "$f: no front matter"; exit 1; }
+            awk 'NR>1 && /^---$/ {exit} NR>1' "$f" | grep -q '^name:' || { echo "$f: no name"; exit 1; }
+            awk 'NR>1 && /^---$/ {exit} NR>1' "$f" | grep -q '^description:' || { echo "$f: no description"; exit 1; }
+          done
+      - name: Check package contents
+        run: |
+          npm pack --dry-run --json > pack.json
+          node -e '
+            const files = JSON.parse(require("fs").readFileSync("pack.json"))[0].files.map(f => f.path);
+            const need = ["skills/myn-api/SKILL.md", "skills/myn-a2a/SKILL.md"];
+            for (const n of need) if (!files.includes(n)) { console.error("missing " + n); process.exit(1); }
+            const refs = files.filter(p => p.startsWith("skills/myn-api/references/") && p.endsWith(".md"));
+            if (refs.length !== 14) { console.error("expected 14 references, got " + refs.length); process.exit(1); }
+          '
+  publish:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Tag matches version and is on main
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          test "$v" = "$(node -p 'require("./package.json").version')" || { echo "tag $GITHUB_REF_NAME != package.json"; exit 1; }
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "tagged commit is not on main"; exit 1; }
+      - run: npm install -g npm@^11.5.1
+      - run: npm publish --access public
