@@ -43,7 +43,7 @@ pan sync  # if using Panopticon
 Install the OpenClaw plugin which bundles these skills automatically:
 
 ```bash
-openclaw plugins install @mind-your-now/openclaw-plugin
+openclaw plugins install @mind-your-now/myn
 ```
 
 ### Cursor / Other AI Editors
@@ -67,8 +67,14 @@ This package contains **pure structured documentation** — no TypeScript, no bu
 
 ## Related
 
-- [`@mind-your-now/openclaw-plugin`](https://github.com/mindyournow/openclaw-plugin) — OpenClaw plugin that wraps these skills with tool definitions
+- [`@mind-your-now/myn`](https://github.com/mindyournow/openclaw-plugin) — OpenClaw plugin that wraps these skills with tool definitions
 - [Mind Your Now](https://mindyournow.com) — The productivity platform
+
+## Releasing
+
+Bump `version` in `package.json`, merge to `main`, then tag that `main` commit `v<version>` and push the
+tag. `.github/workflows/release.yml` checks the package and publishes to npm through trusted publishing.
+The publish job refuses a tag that does not match `package.json` or is not on `main`.
 
 ## License
 
